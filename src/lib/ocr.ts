@@ -1,11 +1,37 @@
-import Tesseract from "tesseract.js";
+import { createWorker, PSM, type Worker } from "tesseract.js";
+
+// A single worker is created lazily and reused across images — re-initialising
+// per image (as the old convenience API did) is slow for multi-photo import.
+let workerPromise: Promise<Worker> | null = null;
+// Progress is reported through the worker's logger, which is set once at
+// creation; this holds the current call's callback so per-image progress works.
+let onProgressCb: ((p: number) => void) | null = null;
+
+async function getWorker(): Promise<Worker> {
+  if (!workerPromise) {
+    workerPromise = (async () => {
+      const worker = await createWorker("eng", 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text" && onProgressCb) onProgressCb(m.progress);
+        },
+      });
+      // Groww order screenshots are a single uniform column; PSM 6 reads them
+      // more reliably than the default auto mode (which mangled small digits).
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK });
+      return worker;
+    })();
+  }
+  return workerPromise;
+}
 
 // Run OCR on an image file entirely in the browser. No data leaves the device.
 export async function ocrImage(file: File | Blob, onProgress?: (p: number) => void): Promise<string> {
-  const { data } = await Tesseract.recognize(file, "eng", {
-    logger: (m) => {
-      if (m.status === "recognizing text" && onProgress) onProgress(m.progress);
-    },
-  });
-  return data.text;
+  const worker = await getWorker();
+  onProgressCb = onProgress ?? null;
+  try {
+    const { data } = await worker.recognize(file);
+    return data.text;
+  } finally {
+    onProgressCb = null;
+  }
 }

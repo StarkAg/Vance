@@ -51,7 +51,7 @@ const toItem = (fileName: string, p: ParsedOrder): ReviewItem => ({
   price: p.avgPrice != null ? String(p.avgPrice) : "",
   date: p.date ?? "",
   targetId: "",
-  include: true,
+  include: p.status !== "failed", // cancelled/rejected orders never executed
 });
 
 const itemValid = (it: ReviewItem): boolean =>
@@ -320,6 +320,9 @@ function ItemCard({
         </button>
       </div>
 
+      {it.parsed.status === "failed" && (
+        <div className="mt-2 text-xs text-bad">This order was cancelled / not executed — unchecked by default. Check it only if you want to import it anyway.</div>
+      )}
       {!it.side && (
         <div className="mt-2 text-xs text-warn">Pick BUY or SELL — couldn't detect it from the screenshot.</div>
       )}
