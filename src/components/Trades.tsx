@@ -36,6 +36,19 @@ const quoteSymbol = (name?: string) => {
 type Entry = { r: TradeRow; c: ReturnType<typeof tradeCalc> };
 type SortKey = "name" | "buy" | "sell" | "days" | "qty" | "buyPrice" | "sellCur" | "invested" | "return" | "netPct" | "feedback";
 type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
+const SORT_OPTIONS: { key: SortKey; label: string; swingOnly?: boolean }[] = [
+  { key: "name", label: "Stock" },
+  { key: "buy", label: "Buy date" },
+  { key: "sell", label: "Sell date" },
+  { key: "days", label: "Days", swingOnly: true },
+  { key: "qty", label: "Qty" },
+  { key: "buyPrice", label: "Buy ₹" },
+  { key: "sellCur", label: "Sell/Cur" },
+  { key: "invested", label: "Invested" },
+  { key: "return", label: "Return" },
+  { key: "netPct", label: "Net %" },
+  { key: "feedback", label: "Feedback", swingOnly: true },
+];
 const sortValue = (e: Entry, key: SortKey): string | number | undefined => {
   switch (key) {
     case "name": return e.r.name?.toLowerCase() ?? "";
@@ -218,6 +231,29 @@ export default function Trades({ kind }: { kind: Kind }) {
       </div>
 
       <div className="card overflow-hidden xl:overflow-visible">
+        <div className="flex items-center gap-2 border-b border-line p-3 xl:hidden">
+          <span className="shrink-0 text-xs font-medium text-muted">Sort by</span>
+          <select
+            className="input flex-1 py-1.5"
+            value={sort?.key ?? ""}
+            onChange={(e) => setSort(e.target.value ? { key: e.target.value as SortKey, dir: sort?.dir ?? "asc" } : null)}
+          >
+            <option value="">Default order</option>
+            {SORT_OPTIONS.filter((o) => kind === "swing" || !o.swingOnly).map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-ghost shrink-0 px-3"
+            onClick={() => sort && setSort({ key: sort.key, dir: sort.dir === "asc" ? "desc" : "asc" })}
+            disabled={!sort}
+            aria-label="Toggle sort direction"
+            title="Toggle sort direction"
+          >
+            {sort?.dir === "desc" ? "▼ Desc" : "▲ Asc"}
+          </button>
+        </div>
         <div className="divide-y divide-line xl:hidden">
           {sorted.map(({ r, c }) => (
             <div key={r._id} className="w-full cursor-pointer p-3 text-left hover:bg-panel2/40" onClick={() => openEdit(r)}>
