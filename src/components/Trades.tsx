@@ -155,6 +155,12 @@ export default function Trades({ kind }: { kind: Kind }) {
     if (!canSave) return;
     void save();
   };
+  const deleteTrade = async () => {
+    if (!editId) return;
+    if (!confirm("Delete this trade? This can't be undone.")) return;
+    await remove({ id: editId as Id<"swing"> });
+    setOpen(false);
+  };
   const refreshLivePrices = async () => {
     const openRows = calc
       .map(({ r, c }) => ({ r, symbol: c.closed ? undefined : quoteSymbol(r.name) }))
@@ -406,9 +412,17 @@ export default function Trades({ kind }: { kind: Kind }) {
             <Prev k="Net value" v={money(preview.netValue)} />
           </div>
 
-          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-brand" disabled={!canSave}>{editId ? "Save" : "Add"}</button>
+          <div className={`mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:items-center ${editId ? "sm:justify-between" : "sm:justify-end"}`}>
+            {editId && (
+              <button type="button" className="btn-ghost text-bad hover:bg-bad/10" onClick={() => void deleteTrade()}>
+                <Icon name="trash" className="h-4 w-4" />
+                Delete
+              </button>
+            )}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+              <button type="submit" className="btn-brand" disabled={!canSave}>{editId ? "Save" : "Add"}</button>
+            </div>
           </div>
         </form>
       </Modal>
