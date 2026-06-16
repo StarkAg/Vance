@@ -84,8 +84,7 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
   const close = () => { reset(); onClose(); };
 
   // Greedily assign each SELL its best-matching open position, never reusing one.
-  const assignTargets = (list: ReviewItem[]) => {
-    const used = new Set<string>();
+  const assignTargets = (list: ReviewItem[], used: Set<string> = new Set<string>()) => {
     for (const it of list) {
       if (it.side !== "SELL") continue;
       const ranked = openTrades
@@ -101,7 +100,7 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
 
   const handleFiles = async (files: File[]) => {
     if (!files.length) return;
-    reset();
+    setErr(null);
     setBusy(true);
     const next: ReviewItem[] = [];
     const failed: string[] = [];
@@ -117,17 +116,20 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
           failed.push(files[i].name);
         }
       }
-      assignTargets(next);
-      setItems(next);
+      // Append to whatever's already in review; don't reuse a position another SELL took.
+      setItems((prev) => {
+        const used = new Set(prev.filter((p) => p.side === "SELL" && p.targetId).map((p) => p.targetId));
+        assignTargets(next, used);
+        return [...prev, ...next];
+      });
       if (failed.length) {
-        setErr(
-          next.length
-            ? `Couldn't read ${failed.length} image${failed.length > 1 ? "s" : ""}: ${failed.join(", ")}`
-            : "Could not read the image(s). Try clearer screenshots.",
-        );
+        setErr(`Couldn't read ${failed.length} image${failed.length > 1 ? "s" : ""}: ${failed.join(", ")}. Try clearer screenshots.`);
       }
     } finally {
       setBusy(false);
+      setProgress(0);
+      setCurrent(0);
+      setTotal(0);
     }
   };
 
@@ -179,6 +181,14 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
 
   return (
     <Modal open={open} onClose={close} title="Import Groww orders">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => { void handleFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
+      />
       {items.length === 0 && (
         <div>
           <div
@@ -193,14 +203,6 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
             <div className="text-sm font-medium text-slate-200">Drop Groww order screenshots, or click to choose</div>
             <div className="text-xs text-muted">Select multiple images at once — each is read on-device, nothing is uploaded.</div>
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => { void handleFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
-          />
           {busy && (
             <div className="mt-4">
               <div className="mb-1 text-xs text-muted">
@@ -221,11 +223,26 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
             <span className="text-muted">
               {items.length} screenshot{items.length > 1 ? "s" : ""} read · <span className="text-slate-200">{importable.length} ready</span>
             </span>
-            <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-slate-200" onClick={reset} disabled={busy}>
-              <Icon name="reset" className="h-3.5 w-3.5" />
-              Start over
-            </button>
+            <div className="flex items-center gap-3">
+              <button className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-slate-200 disabled:opacity-50" onClick={() => fileRef.current?.click()} disabled={busy}>
+                <Icon name="plus" className="h-3.5 w-3.5" />
+                Add more
+              </button>
+              <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-slate-200 disabled:opacity-50" onClick={reset} disabled={busy}>
+                <Icon name="reset" className="h-3.5 w-3.5" />
+                Start over
+              </button>
+            </div>
           </div>
+
+          {busy && (
+            <div>
+              <div className="mb-1 text-xs text-muted">Reading image {current} of {total}… {Math.round(progress * 100)}%</div>
+              <div className="h-1.5 w-full overflow-hidden rounded bg-panel2">
+                <div className="h-full bg-brand transition-all" style={{ width: `${Math.max(5, progress * 100)}%` }} />
+              </div>
+            </div>
+          )}
 
           {err && <div className="rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{err}</div>}
 
