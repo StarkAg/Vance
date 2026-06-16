@@ -5,11 +5,25 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { ocrImage } from "../lib/ocr";
 import { parseGrowwOrder, normName, type ParsedOrder } from "../lib/parseGroww";
 import { tradeCalc, type TradeRow } from "../lib/calc";
-import { money, pct, signClass, fmtDate } from "../lib/format";
+import { money, signClass, fmtDate } from "../lib/format";
 import { Field, Modal } from "./ui";
 import { Icon } from "./icons";
 
 type Kind = "swing" | "yearly";
+
+// One parsed screenshot, with user-editable fields, awaiting confirmation.
+type ReviewItem = {
+  id: string;
+  fileName: string;
+  parsed: ParsedOrder;
+  side: "BUY" | "SELL" | null;
+  name: string;
+  qty: string;
+  price: string;
+  date: string;
+  targetId: string; // for SELL: open position to close
+  include: boolean;
+};
 
 // Score how well a parsed name + qty matches an open position (higher = better).
 function matchScore(p: ParsedOrder, t: TradeRow): number {
@@ -27,6 +41,26 @@ function matchScore(p: ParsedOrder, t: TradeRow): number {
   return s;
 }
 
+const toItem = (fileName: string, p: ParsedOrder): ReviewItem => ({
+  id: crypto.randomUUID(),
+  fileName,
+  parsed: p,
+  side: p.side,
+  name: p.stockName ?? "",
+  qty: p.qty != null ? String(p.qty) : "",
+  price: p.avgPrice != null ? String(p.avgPrice) : "",
+  date: p.date ?? "",
+  targetId: "",
+  include: true,
+});
+
+const itemValid = (it: ReviewItem): boolean =>
+  it.side === "BUY"
+    ? Boolean(it.name && it.qty && it.price && it.date)
+    : it.side === "SELL"
+      ? Boolean(it.targetId && it.price && it.date)
+      : false;
+
 export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open: boolean; onClose: () => void }) {
   const apiMod = kind === "swing" ? api.swing : api.yearly;
   const allData = useQuery(apiMod.list);
@@ -38,111 +72,140 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
 
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [parsed, setParsed] = useState<ParsedOrder | null>(null);
-  const [targetId, setTargetId] = useState<string>("");
-  const [orderPrice, setOrderPrice] = useState("");
-  const [orderDate, setOrderDate] = useState("");
-  const [orderQty, setOrderQty] = useState("");
-  const [orderName, setOrderName] = useState("");
+  const [current, setCurrent] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [items, setItems] = useState<ReviewItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
-    setParsed(null); setTargetId(""); setOrderPrice(""); setOrderDate(""); setOrderQty(""); setOrderName(""); setErr(null); setProgress(0);
+    setItems([]); setErr(null); setProgress(0); setCurrent(0); setTotal(0);
   };
   const close = () => { reset(); onClose(); };
 
-  const handleFile = async (file: File) => {
+  // Greedily assign each SELL its best-matching open position, never reusing one.
+  const assignTargets = (list: ReviewItem[]) => {
+    const used = new Set<string>();
+    for (const it of list) {
+      if (it.side !== "SELL") continue;
+      const ranked = openTrades
+        .filter((t) => !used.has(t._id))
+        .map((t) => ({ t, score: matchScore(it.parsed, t) }))
+        .sort((a, b) => b.score - a.score);
+      if (ranked[0] && ranked[0].score > 0) {
+        it.targetId = ranked[0].t._id;
+        used.add(ranked[0].t._id);
+      }
+    }
+  };
+
+  const handleFiles = async (files: File[]) => {
+    if (!files.length) return;
     reset();
     setBusy(true);
+    const next: ReviewItem[] = [];
+    const failed: string[] = [];
     try {
-      const text = await ocrImage(file, setProgress);
-      const p = parseGrowwOrder(text);
-      setParsed(p);
-      setOrderPrice(p.avgPrice != null ? String(p.avgPrice) : "");
-      setOrderDate(p.date ?? "");
-      setOrderQty(p.qty != null ? String(p.qty) : "");
-      setOrderName(p.stockName ?? "");
-      // auto-pick best matching open position
-      const ranked = openTrades.map((t) => ({ t, score: matchScore(p, t) })).sort((a, b) => b.score - a.score);
-      if (ranked[0] && ranked[0].score > 0) setTargetId(ranked[0].t._id);
-    } catch {
-      setErr("Could not read the image. Try a clearer screenshot.");
+      for (let i = 0; i < files.length; i++) {
+        setCurrent(i + 1);
+        setTotal(files.length);
+        setProgress(0);
+        try {
+          const text = await ocrImage(files[i], setProgress);
+          next.push(toItem(files[i].name, parseGrowwOrder(text)));
+        } catch {
+          failed.push(files[i].name);
+        }
+      }
+      assignTargets(next);
+      setItems(next);
+      if (failed.length) {
+        setErr(
+          next.length
+            ? `Couldn't read ${failed.length} image${failed.length > 1 ? "s" : ""}: ${failed.join(", ")}`
+            : "Could not read the image(s). Try clearer screenshots.",
+        );
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  const target = openTrades.find((t) => t._id === targetId) ?? null;
-  const previewCalc = target
-    ? tradeCalc({ ...target, sellDate: orderDate || undefined, sellPrice: orderPrice ? Number(orderPrice) : undefined })
-    : null;
-  const isBuy = parsed?.side === "BUY";
-  const isSell = parsed?.side === "SELL";
-  const buyPreview = isBuy
-    ? tradeCalc({
-        _id: "preview",
-        buyDate: orderDate,
-        name: orderName || undefined,
-        qty: Number(orderQty) || 0,
-        buyPrice: Number(orderPrice) || 0,
-        currentPrice: Number(orderPrice) || undefined,
-        charges: 0,
-      })
-    : null;
+  const patch = (id: string, p: Partial<ReviewItem>) =>
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...p } : it)));
+  const removeItem = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id));
 
-  const save = async () => {
-    if (isBuy) {
-      await add({
-        buyDate: orderDate,
-        name: orderName || undefined,
-        qty: Number(orderQty) || 0,
-        buyPrice: Number(orderPrice) || 0,
-        currentPrice: Number(orderPrice) || undefined,
-        charges: 0,
-        ...(kind === "swing" ? { feedback: undefined } : {}),
-      } as Parameters<typeof add>[0]);
+  const importable = items.filter((it) => it.include && itemValid(it));
+  const blocked = items.some((it) => it.include && !itemValid(it));
+
+  const importAll = async () => {
+    setBusy(true);
+    try {
+      for (const it of importable) {
+        if (it.side === "BUY") {
+          await add({
+            buyDate: it.date,
+            name: it.name || undefined,
+            qty: Number(it.qty) || 0,
+            buyPrice: Number(it.price) || 0,
+            currentPrice: Number(it.price) || undefined,
+            charges: 0,
+            ...(kind === "swing" ? { feedback: undefined } : {}),
+          } as Parameters<typeof add>[0]);
+        } else if (it.side === "SELL") {
+          const t = openTrades.find((o) => o._id === it.targetId);
+          if (!t) continue;
+          await update({
+            id: t._id as Id<"swing">,
+            buyDate: t.buyDate,
+            sellDate: it.date || undefined,
+            name: t.name,
+            qty: t.qty,
+            buyPrice: t.buyPrice,
+            sellPrice: it.price ? Number(it.price) : undefined,
+            currentPrice: t.currentPrice,
+            charges: t.charges,
+            budget: t.budget,
+            other: t.other,
+            ...(kind === "swing" ? { feedback: t.feedback } : {}),
+          } as Parameters<typeof update>[0]);
+        }
+      }
       close();
-      return;
+    } finally {
+      setBusy(false);
     }
-    if (!target) return;
-    await update({
-      id: target._id as Id<"swing">,
-      buyDate: target.buyDate,
-      sellDate: orderDate || undefined,
-      name: target.name,
-      qty: target.qty,
-      buyPrice: target.buyPrice,
-      sellPrice: orderPrice ? Number(orderPrice) : undefined,
-      currentPrice: target.currentPrice,
-      charges: target.charges,
-      budget: target.budget,
-      other: target.other,
-      ...(kind === "swing" ? { feedback: target.feedback } : {}),
-    } as Parameters<typeof update>[0]);
-    close();
   };
 
   return (
-    <Modal open={open} onClose={close} title="Import Groww order">
-      {!parsed && (
+    <Modal open={open} onClose={close} title="Import Groww orders">
+      {items.length === 0 && (
         <div>
           <div
-            onClick={() => fileRef.current?.click()}
+            onClick={() => !busy && fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+            onDrop={(e) => { e.preventDefault(); if (!busy) void handleFiles(Array.from(e.dataTransfer.files ?? [])); }}
             className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-line bg-panel2/40 px-4 py-10 text-center hover:border-brand sm:px-6 sm:py-12"
           >
             <div className="grid h-12 w-12 place-items-center rounded bg-brand/10 text-brand">
               <Icon name="import" className="h-6 w-6" />
             </div>
-            <div className="text-sm font-medium text-slate-200">Drop a Groww order screenshot, or click to choose</div>
-            <div className="text-xs text-muted">Reads buy or sell details on-device — nothing is uploaded.</div>
+            <div className="text-sm font-medium text-slate-200">Drop Groww order screenshots, or click to choose</div>
+            <div className="text-xs text-muted">Select multiple images at once — each is read on-device, nothing is uploaded.</div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => { void handleFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
+          />
           {busy && (
             <div className="mt-4">
-              <div className="mb-1 text-xs text-muted">Reading image… {Math.round(progress * 100)}%</div>
+              <div className="mb-1 text-xs text-muted">
+                Reading image {current} of {total}… {Math.round(progress * 100)}%
+              </div>
               <div className="h-1.5 w-full overflow-hidden rounded bg-panel2">
                 <div className="h-full bg-brand transition-all" style={{ width: `${Math.max(5, progress * 100)}%` }} />
               </div>
@@ -152,87 +215,134 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
         </div>
       )}
 
-      {parsed && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className={`chip ${parsed.side === "SELL" ? "bg-good/15 text-good" : "bg-warn/15 text-warn"}`}>
-              {parsed.side ?? "UNKNOWN"} order
+      {items.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="text-muted">
+              {items.length} screenshot{items.length > 1 ? "s" : ""} read · <span className="text-slate-200">{importable.length} ready</span>
             </span>
-            <span className="text-slate-200 font-medium">{parsed.stockName ?? "—"}</span>
-            <span className="text-muted">· {parsed.qty ?? "?"} qty · {parsed.exchange ?? ""}</span>
-          </div>
-          {!parsed.side && (
-            <div className="rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-              Could not confirm whether this is BUY or SELL. Check the fields before saving.
-            </div>
-          )}
-
-          {isSell && (
-            <Field label="Apply to open position">
-              <select className="input" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                <option value="">— select an open position —</option>
-                {openTrades.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {(t.name || "unnamed")} · {t.qty} qty · buy {t.buyPrice} · {fmtDate(t.buyDate)}
-                  </option>
-                ))}
-              </select>
-              {openTrades.length === 0 && <div className="mt-1 text-xs text-muted">No open positions to close.</div>}
-            </Field>
-          )}
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {isBuy && <Field label="Stock name"><input className="input" value={orderName} onChange={(e) => setOrderName(e.target.value)} /></Field>}
-            <Field label={`${isBuy ? "Buy" : "Sell"} price (avg)`}><input className="input" inputMode="decimal" value={orderPrice} onChange={(e) => setOrderPrice(e.target.value)} /></Field>
-            <Field label={`${isBuy ? "Buy" : "Sell"} date`}><input type="date" className="input" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} /></Field>
-            {isBuy && <Field label="Qty"><input className="input" inputMode="numeric" value={orderQty} onChange={(e) => setOrderQty(e.target.value)} /></Field>}
-          </div>
-
-          {isBuy && buyPreview && (
-            <div className="grid grid-cols-2 gap-2 rounded border border-line bg-panel2/50 p-3 text-sm sm:grid-cols-4">
-              <Cell k="Invested" v={money(buyPreview.invested)} />
-              <Cell k="Current value" v={money(buyPreview.valued)} />
-              <Cell k="Qty" v={orderQty || "0"} />
-              <Cell k="Status" v="Open" />
-            </div>
-          )}
-
-          {isSell && target && previewCalc && (
-            <div className="grid grid-cols-2 gap-2 rounded border border-line bg-panel2/50 p-3 text-sm sm:grid-cols-4">
-              <Cell k="Invested" v={money(previewCalc.invested)} />
-              <Cell k="Sell value" v={money(previewCalc.valued)} />
-              <Cell k="Net P/L" v={money(previewCalc.netProfit)} cls={signClass(previewCalc.netProfit)} />
-              <Cell k="Net %" v={pct(previewCalc.netProfitPct)} cls={signClass(previewCalc.netProfit)} />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-slate-200" onClick={reset}>
+            <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-slate-200" onClick={reset} disabled={busy}>
               <Icon name="reset" className="h-3.5 w-3.5" />
-              Try another image
+              Start over
             </button>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row">
-              <button className="btn-ghost" onClick={close}>Cancel</button>
-              <button
-                className="btn-brand"
-                onClick={save}
-                disabled={isBuy ? !orderName || !orderQty || !orderPrice || !orderDate : !target || !orderPrice || !orderDate}
-              >
-                {isBuy ? "Confirm & add buy" : "Confirm & close position"}
-              </button>
-            </div>
           </div>
+
+          {err && <div className="rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{err}</div>}
+
+          <div className="space-y-3">
+            {items.map((it) => (
+              <ItemCard
+                key={it.id}
+                it={it}
+                openTrades={openTrades}
+                onChange={(p) => patch(it.id, p)}
+                onRemove={() => removeItem(it.id)}
+              />
+            ))}
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <button className="btn-ghost" onClick={close} disabled={busy}>Cancel</button>
+            <button className="btn-brand" onClick={importAll} disabled={busy || importable.length === 0 || blocked}>
+              {busy ? "Importing…" : `Import ${importable.length} order${importable.length === 1 ? "" : "s"}`}
+            </button>
+          </div>
+          {blocked && (
+            <div className="text-right text-xs text-warn">Some selected orders are missing required fields — fix or uncheck them.</div>
+          )}
         </div>
       )}
     </Modal>
   );
 }
 
-function Cell({ k, v, cls }: { k: string; v: string; cls?: string }) {
+function ItemCard({
+  it, openTrades, onChange, onRemove,
+}: {
+  it: ReviewItem;
+  openTrades: TradeRow[];
+  onChange: (p: Partial<ReviewItem>) => void;
+  onRemove: () => void;
+}) {
+  const isBuy = it.side === "BUY";
+  const isSell = it.side === "SELL";
+  const target = openTrades.find((t) => t._id === it.targetId) ?? null;
+  const valid = itemValid(it);
+
+  let summary: { k: string; v: string; cls?: string } | null = null;
+  if (isBuy && it.qty && it.price) {
+    summary = { k: "Invested", v: money((Number(it.qty) || 0) * (Number(it.price) || 0)) };
+  } else if (isSell && target && it.price) {
+    const c = tradeCalc({ ...target, sellDate: it.date || undefined, sellPrice: Number(it.price) });
+    summary = { k: "Net P/L", v: money(c.netProfit), cls: signClass(c.netProfit) };
+  }
+
   return (
-    <div className="rounded bg-panel px-2.5 py-1.5">
-      <div className="text-[11px] text-muted">{k}</div>
-      <div className={`font-semibold ${cls ?? "text-slate-100"}`}>{v}</div>
+    <div className={`rounded border bg-panel2/40 p-3 ${it.include ? "border-line" : "border-line/40 opacity-60"}`}>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={it.include}
+          onChange={(e) => onChange({ include: e.target.checked })}
+          className="h-4 w-4 shrink-0 accent-[#d8b45a]"
+          aria-label="Include this order"
+        />
+        <select
+          className="input w-auto py-1 text-xs"
+          value={it.side ?? ""}
+          onChange={(e) => onChange({ side: (e.target.value || null) as ReviewItem["side"] })}
+        >
+          <option value="">Unknown</option>
+          <option value="BUY">BUY</option>
+          <option value="SELL">SELL</option>
+        </select>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted" title={it.fileName}>{it.fileName}</span>
+        {summary && <span className={`shrink-0 text-xs font-semibold ${summary.cls ?? "text-slate-100"}`}>{summary.k}: {summary.v}</span>}
+        <button className="shrink-0 text-muted hover:text-bad" onClick={onRemove} aria-label="Remove" title="Remove">
+          <Icon name="close" className="h-4 w-4" />
+        </button>
+      </div>
+
+      {!it.side && (
+        <div className="mt-2 text-xs text-warn">Pick BUY or SELL — couldn't detect it from the screenshot.</div>
+      )}
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {isBuy && (
+          <Field label="Stock name">
+            <input className="input" value={it.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="e.g. RELIANCE" />
+          </Field>
+        )}
+        {isSell && (
+          <Field label="Apply to open position">
+            <select className="input" value={it.targetId} onChange={(e) => onChange({ targetId: e.target.value })}>
+              <option value="">— select an open position —</option>
+              {openTrades.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {(t.name || "unnamed")} · {t.qty} qty · buy {t.buyPrice} · {fmtDate(t.buyDate)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        <Field label={`${isSell ? "Sell" : "Buy"} price (avg)`}>
+          <input className="input" inputMode="decimal" value={it.price} onChange={(e) => onChange({ price: e.target.value })} />
+        </Field>
+        <Field label={`${isSell ? "Sell" : "Buy"} date`}>
+          <input type="date" className="input" value={it.date} onChange={(e) => onChange({ date: e.target.value })} />
+        </Field>
+        {isBuy && (
+          <Field label="Qty">
+            <input className="input" inputMode="numeric" value={it.qty} onChange={(e) => onChange({ qty: e.target.value })} />
+          </Field>
+        )}
+      </div>
+
+      {it.include && !valid && (
+        <div className="mt-2 text-xs text-warn">
+          {it.side === "SELL" && !it.targetId ? "Select the open position to close." : "Fill in all fields to import this order."}
+        </div>
+      )}
     </div>
   );
 }
