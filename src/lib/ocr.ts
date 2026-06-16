@@ -14,6 +14,10 @@ async function getWorker(): Promise<Worker> {
       // /tessdata/grw.traineddata.gz. OEM 1 = LSTM_ONLY (it has no legacy engine).
       const worker = await createWorker("grw", 1, {
         langPath: "/tessdata",
+        // Our model is a float (tessdata_best-derived) LSTM. The auto-selected
+        // SIMD wasm core is missing the float dot-product symbol (DotProductSSE)
+        // and aborts in-browser — pin the non-SIMD LSTM core, which works.
+        corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-lstm.wasm.js",
         logger: (m) => {
           if (m.status === "recognizing text" && onProgressCb) onProgressCb(m.progress);
         },
