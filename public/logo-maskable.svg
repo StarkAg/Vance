@@ -10,11 +10,11 @@
       <stop offset="1" stop-color="#050505"/>
     </linearGradient>
   </defs>
-  <!-- tile -->
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#tile)"/>
-  <rect x="17" y="17" width="478" height="478" rx="111" fill="none" stroke="#d8b45a" stroke-opacity="0.22" stroke-width="2"/>
-  <!-- V that rises into an up-arrow (V-shaped recovery) -->
-  <g fill="none" stroke="url(#gold)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+  <!-- full-bleed background so the OS mask never clips a corner -->
+  <rect x="0" y="0" width="512" height="512" fill="url(#tile)"/>
+  <!-- V scaled into the maskable safe zone (centre ~80%) -->
+  <g transform="translate(256 256) scale(0.8) translate(-256 -256)"
+     fill="none" stroke="url(#gold)" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
     <path d="M158 166 L250 372 L368 138"/>
     <path d="M376 200 L368 138 L313 168"/>
   </g>
