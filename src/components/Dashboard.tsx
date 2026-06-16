@@ -6,7 +6,8 @@ import {
 import { api } from "../../convex/_generated/api";
 import { budgetCalc, tradeCalc, withRunningBalance, LEDGER_ACCOUNTS, type BudgetRow, type TradeRow, type LedgerRow } from "../lib/calc";
 import { money, pct } from "../lib/format";
-import { Stat } from "./ui";
+import { useGrowwHoldings } from "../lib/useGrowwHoldings";
+import { Stat, Count } from "./ui";
 
 const COLORS = ["#d8b45a", "#f5f5f5", "#737373", "#2dd4bf", "#fb7185", "#f59e0b"];
 
@@ -35,6 +36,17 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
   const s = agg(swingC), y = agg(yearlyC);
   const totalNet = s.net + y.net;
   const totalInvested = s.invested + y.invested;
+
+  // Headline portfolio stats come from live Groww holdings (actual invested,
+  // positions, current value, unrealized P/L). Fall back to the journal only if
+  // holdings can't be loaded (e.g. token not set).
+  const h = useGrowwHoldings();
+  const real = !h.loading && !h.err && h.totals.count > 0;
+  const investedView = real ? h.totals.invested : totalInvested;
+  const positionsView = real ? h.totals.count : swing.length + yearly.length;
+  const portfolioValue = real ? h.totals.value : s.value + y.value;
+  const netView = real ? h.totals.pnl : totalNet;
+  const netPctView = real ? h.totals.pnlPct : totalInvested ? totalNet / totalInvested : 0;
 
   // Budget allocation from the latest month
   const latest = budget[budget.length - 1];
@@ -73,14 +85,13 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold text-slate-100">Dashboard</h2>
-        <p className="text-sm text-muted">Overview across budget, trading and ledger.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total Net P/L" value={money(totalNet)} tone={totalNet >= 0 ? "good" : "bad"} sub={pct(totalInvested ? totalNet / totalInvested : 0)} />
-        <Stat label="Capital invested" value={money(totalInvested)} sub={`${swing.length + yearly.length} positions`} />
-        <Stat label="Swing win rate" value={pct(s.winRate)} sub={`${s.wins}/${s.closed} closed`} />
-        <Stat label="Monthly income" value={money(alloc?.income ?? 0)} sub={latest ? latest.date : "—"} />
+        <Stat label={real ? "Holdings P/L (unrealized)" : "Total Net P/L"} value={<Count value={netView} format={money} />} tone={netView >= 0 ? "good" : "bad"} sub={pct(netPctView)} />
+        <Stat label="Capital invested" value={<Count value={investedView} format={money} />} sub={`${positionsView} ${real ? "holdings" : "positions"}`} />
+        <Stat label="Swing win rate" value={<Count value={s.winRate} format={pct} />} sub={`${s.wins}/${s.closed} closed`} />
+        <Stat label="Monthly income" value={<Count value={alloc?.income ?? 0} format={money} />} sub={latest ? latest.date : "—"} />
       </div>
 
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
@@ -93,7 +104,7 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
                   <XAxis dataKey="date" stroke="#9a9a9a" fontSize={11} />
                   <YAxis stroke="#9a9a9a" fontSize={11} width={42} />
                   <Tooltip contentStyle={tooltipStyle} formatter={tooltipMoney} />
-                  <Line type="monotone" dataKey="pnl" stroke="#d8b45a" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pnl" stroke="#d8b45a" strokeWidth={2} dot={false} isAnimationActive animationDuration={1100} animationEasing="ease-out" />
                 </LineChart>
               )}
             </ChartBox>
@@ -108,7 +119,7 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
             <ChartBox>
               {({ width, height }) => (
                 <PieChart width={width} height={height}>
-                  <Pie data={allocData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={68} paddingAngle={2}>
+                  <Pie data={allocData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={68} paddingAngle={2} isAnimationActive animationDuration={900} animationEasing="ease-out">
                     {allocData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip contentStyle={tooltipStyle} formatter={tooltipMoney} />
@@ -132,7 +143,7 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
                   <XAxis dataKey="name" stroke="#9a9a9a" fontSize={9} interval={0} angle={-20} textAnchor="end" height={54} />
                   <YAxis stroke="#9a9a9a" fontSize={11} width={42} />
                   <Tooltip contentStyle={tooltipStyle} formatter={tooltipMoney} cursor={{ fill: "#ffffff0d" }} />
-                  <Bar dataKey="balance" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="balance" radius={[4, 4, 0, 0]} isAnimationActive animationDuration={1000} animationEasing="ease-out">
                     {ledgerBalances.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Bar>
                 </BarChart>
@@ -146,9 +157,9 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
         <div className="card min-w-0 p-3 sm:p-4">
           <div className="mb-3 text-sm font-semibold text-slate-100">Trading breakdown</div>
           <div className="space-y-3">
-            <Row label="Swing — net P/L" value={money(s.net)} tone={s.net} onClick={() => go("swing")} sub={`${money(s.invested)} invested`} />
-            <Row label="Yearly — net P/L" value={money(y.net)} tone={y.net} onClick={() => go("yearly")} sub={`${money(y.invested)} invested`} />
-            <Row label="Current portfolio value" value={money(s.value + y.value)} tone={0} sub="mark-to-market" />
+            <Row label="Swing — net P/L" value={<Count value={s.net} format={money} />} tone={s.net} onClick={() => go("swing")} sub={`${money(s.invested)} invested`} />
+            <Row label="Yearly — net P/L" value={<Count value={y.net} format={money} />} tone={y.net} onClick={() => go("yearly")} sub={`${money(y.invested)} invested`} />
+            <Row label="Current portfolio value" value={<Count value={portfolioValue} format={money} />} tone={0} sub={real ? "live Groww holdings" : "mark-to-market"} />
           </div>
         </div>
       </div>
@@ -195,7 +206,7 @@ function Empty() {
   return <div className="flex h-full items-center justify-center text-sm text-muted">No data yet</div>;
 }
 
-function Row({ label, value, sub, tone, onClick }: { label: string; value: string; sub?: string; tone: number; onClick?: () => void }) {
+function Row({ label, value, sub, tone, onClick }: { label: string; value: ReactNode; sub?: string; tone: number; onClick?: () => void }) {
   const cls = tone > 0 ? "text-good" : tone < 0 ? "text-bad" : "text-slate-100";
   return (
     <button onClick={onClick} className="flex w-full items-center justify-between gap-3 rounded border border-line bg-panel2/40 px-3 py-2.5 text-left hover:bg-panel2">

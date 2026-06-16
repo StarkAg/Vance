@@ -1,5 +1,48 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./icons";
+
+const reduceMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+// Animated count-up: eases from the currently shown value to `value`, formatting
+// each frame. Honors prefers-reduced-motion (snaps instantly). Use as a Stat value:
+//   <Count value={totalNet} format={money} />
+export function Count({
+  value,
+  format,
+  duration = 1100,
+}: {
+  value: number;
+  format: (n: number) => string;
+  duration?: number;
+}) {
+  const [display, setDisplay] = useState(0);
+  const shownRef = useRef(0);
+  const rafRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (reduceMotion() || value === shownRef.current) {
+      shownRef.current = value;
+      setDisplay(value);
+      return;
+    }
+    const from = shownRef.current;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const current = from + (value - from) * eased;
+      shownRef.current = current;
+      setDisplay(current);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+      else { shownRef.current = value; setDisplay(value); }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [value, duration]);
+
+  return <>{format(display)}</>;
+}
 
 export function Stat({
   label,
@@ -42,8 +85,8 @@ export function Modal({
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/60 p-4 backdrop-blur-sm">
-      <div className="card flex max-h-[88dvh] w-full max-w-2xl flex-col p-4 shadow-2xl sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overflow-x-hidden bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="card flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-b-none rounded-t-2xl p-4 shadow-2xl sm:max-h-[88dvh] sm:rounded sm:p-5">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded text-muted hover:bg-panel2 hover:text-slate-200" aria-label="Close">

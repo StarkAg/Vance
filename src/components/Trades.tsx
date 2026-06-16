@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { tradeCalc, type TradeRow } from "../lib/calc";
 import { money, pct, signClass, fmtDate } from "../lib/format";
-import { Field, Modal, ConfirmDelete, Stat } from "./ui";
+import { Field, Modal, ConfirmDelete, Stat, Count } from "./ui";
 import UploadOrder from "./UploadOrder";
 import GrowwOrders from "./GrowwOrders";
 import { Icon } from "./icons";
@@ -37,18 +37,12 @@ const quoteSymbol = (name?: string) => {
 type Entry = { r: TradeRow; c: ReturnType<typeof tradeCalc> };
 type SortKey = "name" | "buy" | "sell" | "days" | "qty" | "buyPrice" | "sellCur" | "invested" | "return" | "netPct" | "feedback";
 type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
-const SORT_OPTIONS: { key: SortKey; label: string; swingOnly?: boolean }[] = [
+// Only the sorts that actually matter for a trade journal.
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Stock" },
   { key: "buy", label: "Buy date" },
-  { key: "sell", label: "Sell date" },
-  { key: "days", label: "Days", swingOnly: true },
-  { key: "qty", label: "Qty" },
-  { key: "buyPrice", label: "Buy ₹" },
-  { key: "sellCur", label: "Sell/Cur" },
   { key: "invested", label: "Invested" },
-  { key: "return", label: "Return" },
   { key: "netPct", label: "Net %" },
-  { key: "feedback", label: "Feedback", swingOnly: true },
 ];
 const sortValue = (e: Entry, key: SortKey): string | number | undefined => {
   switch (key) {
@@ -208,9 +202,6 @@ export default function Trades({ kind }: { kind: Kind }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-slate-100">{title}</h2>
-          <p className="text-sm text-muted">
-            {kind === "swing" ? "Short-term trades." : "Long-term holdings."} Open positions are marked-to-market at current price.
-          </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           <button className="btn-ghost col-span-2 sm:col-span-1" onClick={refreshLivePrices} disabled={refreshingPrices}>
@@ -237,10 +228,10 @@ export default function Trades({ kind }: { kind: Kind }) {
       <GrowwOrders kind={kind} open={growwOpen} onClose={() => setGrowwOpen(false)} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Invested" value={money(totals.openInvested)} sub="Open trades" />
-        <Stat label="Net P/L" value={money(totals.closedNetProfit)} tone={totals.closedNetProfit >= 0 ? "good" : "bad"} sub={pct(totals.closedInvested ? totals.closedNetProfit / totals.closedInvested : 0)} />
-        <Stat label="Current value" value={money(totals.openValue)} sub="Open trades" />
-        <Stat label="Win rate" value={pct(totals.winRate)} sub={`${totals.wins}/${totals.closed} profitable · ${totals.n} total`} />
+        <Stat label="Invested" value={<Count value={totals.openInvested} format={money} />} sub="Open trades" />
+        <Stat label="Net P/L" value={<Count value={totals.closedNetProfit} format={money} />} tone={totals.closedNetProfit >= 0 ? "good" : "bad"} sub={pct(totals.closedInvested ? totals.closedNetProfit / totals.closedInvested : 0)} />
+        <Stat label="Current value" value={<Count value={totals.openValue} format={money} />} sub="Open trades" />
+        <Stat label="Win rate" value={<Count value={totals.winRate} format={pct} />} sub={`${totals.wins}/${totals.closed} profitable · ${totals.n} total`} />
       </div>
 
       <div className="card overflow-hidden xl:overflow-visible">
@@ -252,7 +243,7 @@ export default function Trades({ kind }: { kind: Kind }) {
             onChange={(e) => setSort(e.target.value ? { key: e.target.value as SortKey, dir: sort?.dir ?? "asc" } : null)}
           >
             <option value="">Default order</option>
-            {SORT_OPTIONS.filter((o) => kind === "swing" || !o.swingOnly).map((o) => (
+            {SORT_OPTIONS.map((o) => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
@@ -339,15 +330,15 @@ export default function Trades({ kind }: { kind: Kind }) {
               <tr>
                 <SortHeader label="Stock" sortKey="name" sort={sort} onSort={toggleSort} className="px-1" />
                 <SortHeader label="Buy" sortKey="buy" sort={sort} onSort={toggleSort} className="px-1" />
-                <SortHeader label="Sell" sortKey="sell" sort={sort} onSort={toggleSort} className="px-1" />
-                {kind === "swing" && <SortHeader label="Days" sortKey="days" sort={sort} onSort={toggleSort} align="right" className="px-1" />}
-                <SortHeader label="Qty" sortKey="qty" sort={sort} onSort={toggleSort} align="right" className="px-1" />
-                <SortHeader label="Buy ₹" sortKey="buyPrice" sort={sort} onSort={toggleSort} align="right" className="px-1" />
-                <SortHeader label="Sell/Cur" sortKey="sellCur" sort={sort} onSort={toggleSort} align="right" className="px-1" />
+                <th className="th px-1">Sell</th>
+                {kind === "swing" && <th className="th px-1 text-right">Days</th>}
+                <th className="th px-1 text-right">Qty</th>
+                <th className="th px-1 text-right">Buy ₹</th>
+                <th className="th px-1 text-right">Sell/Cur</th>
                 <SortHeader label="Invested" sortKey="invested" sort={sort} onSort={toggleSort} align="right" className="px-1" />
-                <SortHeader label="Return" sortKey="return" sort={sort} onSort={toggleSort} align="right" className="px-1" />
+                <th className="th px-1 text-right">Return</th>
                 <SortHeader label="Net %" sortKey="netPct" sort={sort} onSort={toggleSort} align="right" className="px-1" />
-                {kind === "swing" && <SortHeader label="Feedback" sortKey="feedback" sort={sort} onSort={toggleSort} className="pl-5 pr-1" />}
+                {kind === "swing" && <th className="th pl-5 pr-1">Feedback</th>}
                 <th className="th"></th>
               </tr>
             </thead>

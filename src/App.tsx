@@ -2,6 +2,7 @@ import { useState } from "react";
 import Dashboard from "./components/Dashboard";
 import Budget from "./components/Budget";
 import Trades from "./components/Trades";
+import Holdings from "./components/Holdings";
 import Ledger from "./components/Ledger";
 import { Icon, type IconName } from "./components/icons";
 
@@ -10,6 +11,7 @@ const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "budget", label: "Budget", short: "Budget", icon: "wallet" },
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
   { id: "yearly", label: "Yearly Stock", short: "Yearly", icon: "calendar" },
+  { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
   { id: "ledger", label: "Ledger", short: "Ledger", icon: "book" },
 ];
 
@@ -69,11 +71,12 @@ export default function App() {
         {tab === "budget" && <Budget />}
         {tab === "swing" && <Trades kind="swing" />}
         {tab === "yearly" && <Trades kind="yearly" />}
+        {tab === "holdings" && <Holdings />}
         {tab === "ledger" && <Ledger />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-2xl backdrop-blur lg:hidden">
-        <div className="phone-nav">{phoneNav}</div>
+        <div className="phone-nav" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>{phoneNav}</div>
       </nav>
 
       <footer className="mx-auto hidden max-w-[1800px] px-3 py-6 text-center text-xs text-muted sm:block sm:px-4 2xl:max-w-[2200px]">

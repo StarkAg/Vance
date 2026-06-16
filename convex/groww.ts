@@ -63,6 +63,15 @@ async function getAccessToken(): Promise<string> {
     );
   }
 
+  // Headers must be ASCII. A stray '…' (or any non-Latin1 char) means the token
+  // env var was pasted truncated — fail with a clear, actionable message.
+  bearer = bearer.trim();
+  if (/[^\x00-\xFF]/.test(bearer)) {
+    throw new Error(
+      "Groww token env var looks truncated (contains a non-ASCII char like '…'). Re-set the FULL token: npx convex env set --prod GROWW_TOTP_TOKEN \"$(grep '^GROWW_TOTP_TOKEN=' .env.local | cut -d= -f2-)\"",
+    );
+  }
+
   const res = await fetch(`${BASE}/token/api/access`, {
     method: "POST",
     headers: { ...headers(bearer), "Content-Type": "application/json" },

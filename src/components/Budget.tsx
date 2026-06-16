@@ -54,7 +54,6 @@ export default function Budget() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-slate-100">Monthly Budget</h2>
-          <p className="text-sm text-muted">Income auto-allocated into Consumption, Investment &amp; Stability.</p>
         </div>
         <button className="btn-brand w-full sm:w-auto" onClick={openAdd}>
           <Icon name="plus" />
