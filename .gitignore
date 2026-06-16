@@ -24,3 +24,6 @@ eng.traineddata
 *.sln
 *.sw?
 .vercel
+
+# Tesseract fine-tuning workspace (large artifacts, not app code)
+ocr-training/

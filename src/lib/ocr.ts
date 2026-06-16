@@ -10,7 +10,10 @@ let onProgressCb: ((p: number) => void) | null = null;
 async function getWorker(): Promise<Worker> {
   if (!workerPromise) {
     workerPromise = (async () => {
-      const worker = await createWorker("eng", 1, {
+      // "grw" is our own Groww-font model (fine-tuned LSTM), shipped gzipped at
+      // /tessdata/grw.traineddata.gz. OEM 1 = LSTM_ONLY (it has no legacy engine).
+      const worker = await createWorker("grw", 1, {
+        langPath: "/tessdata",
         logger: (m) => {
           if (m.status === "recognizing text" && onProgressCb) onProgressCb(m.progress);
         },
