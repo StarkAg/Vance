@@ -6,6 +6,7 @@ import { tradeCalc, type TradeRow } from "../lib/calc";
 import { money, pct, signClass, fmtDate } from "../lib/format";
 import { Field, Modal, ConfirmDelete, Stat } from "./ui";
 import UploadOrder from "./UploadOrder";
+import GrowwOrders from "./GrowwOrders";
 import { Icon } from "./icons";
 
 type Kind = "swing" | "yearly";
@@ -77,6 +78,7 @@ export default function Trades({ kind }: { kind: Kind }) {
 
   const [open, setOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [growwOpen, setGrowwOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [priceStatus, setPriceStatus] = useState("");
@@ -215,6 +217,10 @@ export default function Trades({ kind }: { kind: Kind }) {
             <Icon name="reset" />
             {refreshingPrices ? "Refreshing" : "Refresh prices"}
           </button>
+          <button className="btn-ghost" onClick={() => setGrowwOpen(true)}>
+            <Icon name="trending" />
+            From Groww
+          </button>
           <button className="btn-ghost" onClick={() => setUploadOpen(true)}>
             <Icon name="import" />
             Import order
@@ -228,6 +234,7 @@ export default function Trades({ kind }: { kind: Kind }) {
       </div>
 
       <UploadOrder kind={kind} open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <GrowwOrders kind={kind} open={growwOpen} onClose={() => setGrowwOpen(false)} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Invested" value={money(totals.openInvested)} sub="Open trades" />

@@ -45,6 +45,23 @@ export default defineSchema({
     other: v.optional(v.number()),
   }).index("by_buyDate", ["buyDate"]),
 
+  // Snapshot of Groww orders. The Groww API only returns the current trading
+  // day's order book, so we persist each sync here to build up full history.
+  growwOrders: defineTable({
+    growwOrderId: v.string(),
+    symbol: v.string(),
+    side: v.string(), // BUY | SELL
+    status: v.string(),
+    qty: v.number(),
+    price: v.number(),
+    exchange: v.string(), // NSE | BSE
+    segment: v.string(),
+    date: v.string(), // ISO yyyy-mm-dd
+    syncedAt: v.number(),
+  })
+    .index("by_orderId", ["growwOrderId"])
+    .index("by_date", ["date"]),
+
   // Ledger — six independent double-entry accounts, distinguished by `account`.
   ledger: defineTable({
     account: v.string(), // Gym | Needs | Wants | Fixed Deposit | Saving | Stock

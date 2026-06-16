@@ -9,6 +9,9 @@
  */
 
 import type * as budget from "../budget.js";
+import type * as crons from "../crons.js";
+import type * as groww from "../groww.js";
+import type * as growwStore from "../growwStore.js";
 import type * as ledger from "../ledger.js";
 import type * as names from "../names.js";
 import type * as ocr from "../ocr.js";
@@ -25,6 +28,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   budget: typeof budget;
+  crons: typeof crons;
+  groww: typeof groww;
+  growwStore: typeof growwStore;
   ledger: typeof ledger;
   names: typeof names;
   ocr: typeof ocr;
