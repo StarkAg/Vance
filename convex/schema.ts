@@ -62,6 +62,16 @@ export default defineSchema({
     .index("by_orderId", ["growwOrderId"])
     .index("by_date", ["date"]),
 
+  // Sector-rotation snapshot from Moneycontrol's sector API. A local cron
+  // (scripts/sector-cron.sh, residential IP) pushes one row every 15 min during
+  // market hours; the dashboard reads the latest. Payload is JSON-stringified —
+  // it's a denormalized display blob, never queried by field. See
+  // scripts/sector-uptrend.mjs --push.
+  sectorRotation: defineTable({
+    updatedAt: v.number(), // epoch ms when fetched
+    payload: v.string(), // JSON: { ranked, broad, picks, fetchedAtIST }
+  }),
+
   // Ledger — six independent double-entry accounts, distinguished by `account`.
   ledger: defineTable({
     account: v.string(), // Gym | Needs | Wants | Fixed Deposit | Saving | Stock

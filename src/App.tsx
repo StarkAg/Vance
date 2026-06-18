@@ -3,6 +3,7 @@ import Dashboard from "./components/Dashboard";
 import Budget from "./components/Budget";
 import Trades from "./components/Trades";
 import Holdings from "./components/Holdings";
+import SectorRotation from "./components/SectorRotation";
 import Ledger from "./components/Ledger";
 import { Icon, type IconName } from "./components/icons";
 
@@ -12,6 +13,7 @@ const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
   { id: "yearly", label: "Yearly Stock", short: "Yearly", icon: "calendar" },
   { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
+  { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors" },
   { id: "ledger", label: "Ledger", short: "Ledger", icon: "book" },
 ];
 
@@ -72,6 +74,7 @@ export default function App() {
         {tab === "swing" && <Trades kind="swing" />}
         {tab === "yearly" && <Trades kind="yearly" />}
         {tab === "holdings" && <Holdings />}
+        {tab === "sectors" && <SectorRotation />}
         {tab === "ledger" && <Ledger />}
       </main>
 

@@ -1,6 +1,10 @@
 # Logs
 logs
 *.log
+
+# sector-uptrend.mjs scratch dumps
+sector-raw.json
+sector-page.html
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

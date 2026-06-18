@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent: runs scripts/sector-cron.sh every 15 minutes. The script itself
+  gates on NSE market hours, so off-hours runs exit immediately (cheap no-op).
+
+  Install:
+    cp scripts/com.vance.sector.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.vance.sector.plist
+  Reload after edits:
+    launchctl unload ~/Library/LaunchAgents/com.vance.sector.plist
+    launchctl load   ~/Library/LaunchAgents/com.vance.sector.plist
+
+  Paths below are absolute for this machine. If node/project moves, update
+  WorkingDirectory and the PATH entry (nvm node bin).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.vance.sector</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>scripts/sector-cron.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/mrstark/Desktop/Code PlayGround/Stocks</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/mrstark/.nvm/versions/node/v20.20.2/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>StartInterval</key>
+  <integer>900</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/mrstark/Desktop/Code PlayGround/Stocks/sector-cron.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/mrstark/Desktop/Code PlayGround/Stocks/sector-cron.log</string>
+</dict>
+</plist>

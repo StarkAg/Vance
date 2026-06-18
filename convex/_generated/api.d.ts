@@ -16,6 +16,7 @@ import type * as ledger from "../ledger.js";
 import type * as names from "../names.js";
 import type * as ocr from "../ocr.js";
 import type * as quotes from "../quotes.js";
+import type * as sector from "../sector.js";
 import type * as seed from "../seed.js";
 import type * as swing from "../swing.js";
 import type * as yearly from "../yearly.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   names: typeof names;
   ocr: typeof ocr;
   quotes: typeof quotes;
+  sector: typeof sector;
   seed: typeof seed;
   swing: typeof swing;
   yearly: typeof yearly;
