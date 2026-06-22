@@ -60,12 +60,19 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-full overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b border-line bg-ink/80 backdrop-blur">
+    <div className="min-h-full overflow-x-hidden pt-[57px]">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between gap-3 px-3 py-3 sm:px-4 2xl:max-w-[2200px]">
           <div className="flex min-w-0 items-center gap-2 lg:pr-4">
-            <span className="brand-wordmark text-2xl leading-none text-slate-100">Vance</span>
-            <Icon name="trending" className="h-4 w-4 shrink-0 text-brand" />
+            <button
+              type="button"
+              aria-label="Account"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-brand transition-colors hover:bg-panel2/70"
+            >
+              <Icon name="user" className="h-4 w-4" />
+            </button>
+            <span className="brand-wordmark hidden text-2xl leading-none text-slate-100 lg:inline">Vance</span>
+            <Icon name="trending" className="hidden h-4 w-4 shrink-0 text-brand lg:block" />
           </div>
           <nav className="hidden min-w-0 flex-1 gap-1 lg:flex">{desktopNav}</nav>
         </div>
