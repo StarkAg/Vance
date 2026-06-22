@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agent from "../agent.js";
 import type * as alexa from "../alexa.js";
 import type * as budget from "../budget.js";
 import type * as crons from "../crons.js";
@@ -29,6 +30,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agent: typeof agent;
   alexa: typeof alexa;
   budget: typeof budget;
   crons: typeof crons;

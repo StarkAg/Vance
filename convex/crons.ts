@@ -18,4 +18,10 @@ crons.daily("sync fno orders", { hourUTC: 10, minuteUTC: 35 }, api.groww.syncFno
 // don't mint tokens / hit the API around the clock. Reads only — never trades.
 crons.cron("poll live position", "* 3-10 * * 1-5", api.groww.pollPosition, {});
 
+// Agentic review: every 5 min during market hours, ask Claude to reason over the
+// latest snapshot and post hold/trim/exit verdicts (convex/agent.ts). The action
+// skips the model call when no positions are open, so a flat book costs nothing.
+// PROPOSE-ONLY — it never places an order.
+crons.cron("agent review", "*/5 3-10 * * 1-5", api.agent.reviewPositions, {});
+
 export default crons;

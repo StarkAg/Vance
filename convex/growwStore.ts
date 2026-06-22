@@ -74,6 +74,40 @@ export const putPositionSnapshot = internalMutation({
   },
 });
 
+// ---------------- Agentic position review ----------------
+
+// Latest agent review for the Agent tab. null until the first review runs.
+export const agentReview = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("agentReview").collect();
+    if (!rows.length) return null;
+    const latest = rows.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
+    return { updatedAt: latest.updatedAt, payload: latest.payload };
+  },
+});
+
+// Replace the review (single-row table). Internal — only the agent action writes.
+export const putAgentReview = internalMutation({
+  args: { updatedAt: v.number(), payload: v.string() },
+  handler: async (ctx, { updatedAt, payload }) => {
+    const existing = await ctx.db.query("agentReview").collect();
+    for (const row of existing) await ctx.db.delete(row._id);
+    await ctx.db.insert("agentReview", { updatedAt, payload });
+  },
+});
+
+// Internal read of the latest live snapshot for the agent to reason over.
+export const latestSnapshot = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("positionSnapshot").collect();
+    if (!rows.length) return null;
+    const latest = rows.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
+    return { updatedAt: latest.updatedAt, payload: latest.payload };
+  },
+});
+
 // Cached access token read/write (single row).
 export const getToken = internalQuery({
   args: {},

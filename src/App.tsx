@@ -8,11 +8,13 @@ import LivePanel from "./components/LivePanel";
 import Scorecard from "./components/Scorecard";
 import Ledger from "./components/Ledger";
 import OrderBook from "./components/OrderBook";
+import AgentPanel from "./components/AgentPanel";
 import { Icon, type IconName } from "./components/icons";
 
 const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "dashboard", label: "Dashboard", short: "Home", icon: "dashboard" },
   { id: "live", label: "Live Position", short: "Live", icon: "pulse" },
+  { id: "agent", label: "Agent", short: "Agent", icon: "bot" },
   { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending" },
   { id: "orders", label: "Order Book", short: "Orders", icon: "list" },
   { id: "budget", label: "Budget", short: "Budget", icon: "wallet" },
@@ -77,6 +79,7 @@ export default function App() {
       <main className="mx-auto w-full max-w-[1800px] px-3 pb-24 pt-5 sm:px-4 sm:py-6 2xl:max-w-[2200px] 2xl:px-6">
         {tab === "dashboard" && <Dashboard go={setTab} />}
         {tab === "live" && <LivePanel />}
+        {tab === "agent" && <AgentPanel />}
         {tab === "scorecard" && <Scorecard />}
         {tab === "orders" && <OrderBook />}
         {tab === "budget" && <Budget />}

@@ -82,6 +82,17 @@ export default defineSchema({
     payload: v.string(), // JSON: { positions: [...], marketOpen, fetchedAtIST }
   }),
 
+  // Agentic review of open F&O positions. A Convex action (convex/agent.ts)
+  // reads the latest live snapshot, asks Claude (Opus 4.8) to reason about each
+  // open contract toward the goal "protect capital / book profit", and writes
+  // one verdict-set row here. PROPOSE-ONLY — the agent never places an order;
+  // the Agent tab renders its hold/trim/exit calls for the human to act on.
+  // Single-row table (latest review wins), mirroring positionSnapshot.
+  agentReview: defineTable({
+    updatedAt: v.number(), // epoch ms when the review ran
+    payload: v.string(), // JSON: { summary, verdicts: [...], model, marketOpen, basedOnSnapshotAt }
+  }),
+
   // Cached Groww access token (expires daily at 6 AM IST). Lets the per-minute
   // poll reuse one token instead of re-minting every run. Single-row table.
   growwToken: defineTable({
