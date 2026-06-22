@@ -93,6 +93,26 @@ const PATHS = {
       <path d="m3 17 9 5 9-5" />
     </>
   ),
+  pulse: (
+    <>
+      <path d="M3 12h4l3 8 4-16 3 8h4" />
+    </>
+  ),
+  check: (
+    <>
+      <path d="M20 6 9 17l-5-5" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M9 6h11" />
+      <path d="M9 12h11" />
+      <path d="M9 18h11" />
+      <path d="M4 6h.01" />
+      <path d="M4 12h.01" />
+      <path d="M4 18h.01" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof PATHS;

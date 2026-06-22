@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as alexa from "../alexa.js";
 import type * as budget from "../budget.js";
 import type * as crons from "../crons.js";
 import type * as groww from "../groww.js";
@@ -28,6 +29,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  alexa: typeof alexa;
   budget: typeof budget;
   crons: typeof crons;
   groww: typeof groww;

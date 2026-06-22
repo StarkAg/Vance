@@ -8,4 +8,14 @@ const crons = cronJobs();
 
 crons.daily("sync groww orders", { hourUTC: 10, minuteUTC: 30 }, api.groww.syncOrders, {});
 
+// Persist today's F&O orders from the primary trading account after close.
+// 10:35 UTC = 16:05 IST — 35 min after NSE close to allow exchange confirmation.
+crons.daily("sync fno orders", { hourUTC: 10, minuteUTC: 35 }, api.groww.syncFnoOrders, {});
+
+// Live F&O position panel: poll Groww every minute during NSE market hours
+// (09:15–15:30 IST = 03:45–10:00 UTC, Mon–Fri). The action itself flags whether
+// the market is open; this cron just bounds the work to trading hours so we
+// don't mint tokens / hit the API around the clock. Reads only — never trades.
+crons.cron("poll live position", "* 3-10 * * 1-5", api.groww.pollPosition, {});
+
 export default crons;

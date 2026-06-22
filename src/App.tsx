@@ -4,11 +4,17 @@ import Budget from "./components/Budget";
 import Trades from "./components/Trades";
 import Holdings from "./components/Holdings";
 import SectorRotation from "./components/SectorRotation";
+import LivePanel from "./components/LivePanel";
+import Scorecard from "./components/Scorecard";
 import Ledger from "./components/Ledger";
+import OrderBook from "./components/OrderBook";
 import { Icon, type IconName } from "./components/icons";
 
 const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "dashboard", label: "Dashboard", short: "Home", icon: "dashboard" },
+  { id: "live", label: "Live Position", short: "Live", icon: "pulse" },
+  { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending" },
+  { id: "orders", label: "Order Book", short: "Orders", icon: "list" },
   { id: "budget", label: "Budget", short: "Budget", icon: "wallet" },
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
   { id: "yearly", label: "Yearly Stock", short: "Yearly", icon: "calendar" },
@@ -70,6 +76,9 @@ export default function App() {
 
       <main className="mx-auto w-full max-w-[1800px] px-3 pb-24 pt-5 sm:px-4 sm:py-6 2xl:max-w-[2200px] 2xl:px-6">
         {tab === "dashboard" && <Dashboard go={setTab} />}
+        {tab === "live" && <LivePanel />}
+        {tab === "scorecard" && <Scorecard />}
+        {tab === "orders" && <OrderBook />}
         {tab === "budget" && <Budget />}
         {tab === "swing" && <Trades kind="swing" />}
         {tab === "yearly" && <Trades kind="yearly" />}

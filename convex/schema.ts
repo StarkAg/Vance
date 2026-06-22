@@ -72,6 +72,78 @@ export default defineSchema({
     payload: v.string(), // JSON: { ranked, broad, picks, fetchedAtIST }
   }),
 
+  // Live F&O position panel. A Convex cron (convex/crons.ts) polls Groww every
+  // minute during market hours and writes one snapshot row here; the Live tab
+  // reads the latest. Payload is JSON-stringified (array of position cards with
+  // P&L, OCO status, momentum, expiry countdown). Reads aren't IP-gated, so this
+  // works from Convex — only order PLACEMENT needs the whitelisted VM.
+  positionSnapshot: defineTable({
+    updatedAt: v.number(), // epoch ms when polled
+    payload: v.string(), // JSON: { positions: [...], marketOpen, fetchedAtIST }
+  }),
+
+  // Cached Groww access token (expires daily at 6 AM IST). Lets the per-minute
+  // poll reuse one token instead of re-minting every run. Single-row table.
+  growwToken: defineTable({
+    token: v.string(),
+    exp: v.number(), // epoch seconds (JWT exp)
+  }),
+
+  // Resolved instrument metadata (expiry, strike, underlying, lot size) for held
+  // F&O symbols. Populated from Groww's instruments CSV on demand and refreshed
+  // daily; lets the poll avoid re-downloading the multi-MB CSV every minute.
+  instrumentMeta: defineTable({
+    symbol: v.string(), // trading_symbol, e.g. BHARTIARTL26JUN1860CE
+    underlying: v.string(),
+    strike: v.number(),
+    expiry: v.string(), // yyyy-mm-dd
+    lotSize: v.number(),
+    updatedAt: v.number(),
+  }).index("by_symbol", ["symbol"]),
+
+  // F&O trade scorecard. Each closed (or open) options trade, so the Scorecard
+  // tab can show booked P&L vs. "if I'd held to now" using live marks. The Groww
+  // order API is day-scoped, so these are seeded/curated; the poll attaches a
+  // live LTP per symbol to compute the if-held column.
+  fnoTrades: defineTable({
+    symbol: v.string(), // Groww trading_symbol, e.g. LTM26JUN4000CE
+    name: v.string(), // display, e.g. "LTM 4000 CE"
+    qty: v.number(),
+    buyPrice: v.number(),
+    sellPrice: v.optional(v.number()), // unset = still open
+    buyDate: v.string(),
+    sellDate: v.optional(v.string()),
+    note: v.optional(v.string()),
+    bookedPnl: v.optional(v.number()), // override for blended trades where (sell-buy)*qty ≠ actual cash
+  }).index("by_symbol", ["symbol"]),
+
+  // Raw F&O order log — every individual BUY/SELL from the primary trading
+  // account, synced daily by the "sync fno orders" cron and seeded once for
+  // historical data. Stored by growwOrderId (synthetic HIST_* for seeds).
+  fnoOrders: defineTable({
+    growwOrderId: v.string(),
+    symbol: v.string(),       // e.g. BHARTIARTL26JUN1860CE
+    side: v.string(),         // BUY | SELL
+    status: v.string(),       // COMPLETE | SEEDED
+    qty: v.number(),
+    price: v.number(),
+    date: v.string(),         // yyyy-mm-dd
+    time: v.optional(v.string()), // HH:MM for display
+    syncedAt: v.number(),
+  })
+    .index("by_orderId", ["growwOrderId"])
+    .index("by_date", ["date"])
+    .index("by_symbol", ["symbol"]),
+
+  // Alert dedupe log. The live poll speaks danger-level position alerts on the
+  // Echo Flex (via Voice Monkey — see convex/alexa.ts), but runs every minute.
+  // This records the last time each alert key fired so we announce once per
+  // cooldown window instead of repeating the same warning 30× in 30 minutes.
+  alertLog: defineTable({
+    key: v.string(), // e.g. "BHARTIARTL26JUN1860CE:unprotected"
+    at: v.number(), // epoch ms last announced
+  }).index("by_key", ["key"]),
+
   // Ledger — six independent double-entry accounts, distinguished by `account`.
   ledger: defineTable({
     account: v.string(), // Gym | Needs | Wants | Fixed Deposit | Saving | Stock
