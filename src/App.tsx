@@ -1,12 +1,10 @@
 import { useState } from "react";
 import Dashboard from "./components/Dashboard";
-import Budget from "./components/Budget";
 import Trades from "./components/Trades";
 import Holdings from "./components/Holdings";
 import SectorRotation from "./components/SectorRotation";
 import LivePanel from "./components/LivePanel";
 import Scorecard from "./components/Scorecard";
-import Ledger from "./components/Ledger";
 import OrderBook from "./components/OrderBook";
 import AgentPanel from "./components/AgentPanel";
 import { Icon, type IconName } from "./components/icons";
@@ -17,12 +15,9 @@ const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "agent", label: "Agent", short: "Agent", icon: "bot" },
   { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending" },
   { id: "orders", label: "Order Book", short: "Orders", icon: "list" },
-  { id: "budget", label: "Budget", short: "Budget", icon: "wallet" },
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
-  { id: "yearly", label: "Yearly Stock", short: "Yearly", icon: "calendar" },
   { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
   { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors" },
-  { id: "ledger", label: "Ledger", short: "Ledger", icon: "book" },
 ];
 
 export default function App() {
@@ -77,17 +72,14 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-[1800px] px-3 pb-24 pt-5 sm:px-4 sm:py-6 2xl:max-w-[2200px] 2xl:px-6">
-        {tab === "dashboard" && <Dashboard go={setTab} />}
+        {tab === "dashboard" && <Dashboard />}
         {tab === "live" && <LivePanel />}
         {tab === "agent" && <AgentPanel />}
         {tab === "scorecard" && <Scorecard />}
         {tab === "orders" && <OrderBook />}
-        {tab === "budget" && <Budget />}
         {tab === "swing" && <Trades kind="swing" />}
-        {tab === "yearly" && <Trades kind="yearly" />}
         {tab === "holdings" && <Holdings />}
         {tab === "sectors" && <SectorRotation />}
-        {tab === "ledger" && <Ledger />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-2xl backdrop-blur lg:hidden">

@@ -9,7 +9,7 @@ import { money, pct } from "../lib/format";
 import { useGrowwHoldings } from "../lib/useGrowwHoldings";
 import { Stat, Count } from "./ui";
 
-export default function Dashboard({ go }: { go: (t: string) => void }) {
+export default function Dashboard() {
   const budgetData = useQuery(api.budget.list);
   const swingData = useQuery(api.swing.list);
   const yearlyData = useQuery(api.yearly.list);
@@ -40,7 +40,6 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
   const real = !h.loading && !h.err && h.totals.count > 0;
   const investedView = real ? h.totals.invested : totalInvested;
   const positionsView = real ? h.totals.count : swing.length + yearly.length;
-  const portfolioValue = real ? h.totals.value : s.value + y.value;
   const netView = real ? h.totals.pnl : totalNet;
   const netPctView = real ? h.totals.pnlPct : totalInvested ? totalNet / totalInvested : 0;
 
@@ -145,14 +144,6 @@ export default function Dashboard({ go }: { go: (t: string) => void }) {
         )}
       </div>
 
-      <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-3 text-sm font-semibold text-slate-100">Trading breakdown</div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Row label="Swing — net P/L" value={<Count value={s.net} format={money} />} tone={s.net} onClick={() => go("swing")} sub={`${money(s.invested)} invested`} />
-          <Row label="Yearly — net P/L" value={<Count value={y.net} format={money} />} tone={y.net} onClick={() => go("yearly")} sub={`${money(y.invested)} invested`} />
-          <Row label="Current portfolio value" value={<Count value={portfolioValue} format={money} />} tone={0} sub={real ? "live Groww holdings" : "mark-to-market"} />
-        </div>
-      </div>
     </div>
   );
 }
@@ -193,15 +184,3 @@ function Empty() {
   return <div className="flex h-full items-center justify-center text-sm text-muted">No data yet</div>;
 }
 
-function Row({ label, value, sub, tone, onClick }: { label: string; value: ReactNode; sub?: string; tone: number; onClick?: () => void }) {
-  const cls = tone > 0 ? "text-good" : tone < 0 ? "text-bad" : "text-slate-100";
-  return (
-    <button onClick={onClick} className="flex w-full items-center justify-between gap-3 rounded border border-line bg-panel2/40 px-3 py-2.5 text-left hover:bg-panel2">
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-200">{label}</div>
-        {sub && <div className="text-xs text-muted">{sub}</div>}
-      </div>
-      <div className={`shrink-0 text-right text-base font-bold sm:text-lg ${cls}`}>{value}</div>
-    </button>
-  );
-}
