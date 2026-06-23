@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Icon } from "./icons";
 import { useLiveRefresh } from "../lib/useLiveRefresh";
+import { useAccount } from "../lib/account";
 
 // Each row is computed by convex/groww.ts → pollPosition (booked + live if-held).
 type Trade = {
@@ -42,6 +43,7 @@ function ago(ms: number) {
 }
 
 export default function Scorecard() {
+  const { account } = useAccount();
   useLiveRefresh(5000); // poll every 5 s — Groww Live Data cap is 300 req/min
   const snap = useQuery(api.growwStore.positionSnapshot);
   const data = useMemo<Payload | null>(() => {
@@ -64,6 +66,9 @@ export default function Scorecard() {
     return { booked, ifHeld, edge: booked - ifHeld, invested, returnPct, avgDays, perDayPct };
   }, [data]);
 
+  if (account === "aditya") {
+    return <Shell><div className="card p-5 text-sm text-muted">Scorecard is only recorded for Harsh&apos;s account so far. Aditya&apos;s trade history isn&apos;t synced yet — switch to Harsh to view it.</div></Shell>;
+  }
   if (snap === undefined) return <Shell><div className="text-sm text-muted">Loading…</div></Shell>;
   if (!data || data.trades.length === 0) {
     return <Shell><div className="card p-5 text-sm text-muted">No scorecard trades yet.</div></Shell>;

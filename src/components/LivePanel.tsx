@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useLiveRefresh } from "../lib/useLiveRefresh";
+import { useAccount, ACCOUNT_LABELS } from "../lib/account";
 
 // Mirrors the payload built by convex/groww.ts → pollPosition.
 type Position = {
@@ -45,43 +45,70 @@ function ago(ms: number) {
   return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
 
+// NSE F&O open? Mon–Fri 09:15–15:30 IST. Gates the live refresh loop.
+function marketOpenIST(): boolean {
+  const ist = new Date(Date.now() + 5.5 * 3600_000);
+  const day = ist.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const mins = ist.getUTCHours() * 60 + ist.getUTCMinutes();
+  return mins >= 555 && mins <= 930;
+}
+
 export default function LivePanel() {
-  useLiveRefresh(5000); // poll every 5 s — Groww Live Data cap is 300 req/min
-  const snap = useQuery(api.growwStore.positionSnapshot);
-  const data = useMemo<Payload | null>(() => {
-    if (!snap?.payload) return null;
-    try { return JSON.parse(snap.payload) as Payload; } catch { return null; }
-  }, [snap]);
+  const { account } = useAccount();
+  const fetchPositions = useAction(api.groww.livePositions);
+  const [data, setData] = useState<Payload | null>(null);
+  const [updatedAt, setUpdatedAt] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
 
-  if (snap === undefined) return <Shell><div className="text-sm text-muted">Loading…</div></Shell>;
-  if (!data) {
-    return (
-      <Shell>
-        <div className="card p-5 text-sm text-muted">
-          No snapshot yet. The poll runs every minute during market hours (09:15–15:30 IST).
-        </div>
-      </Shell>
-    );
-  }
+  // Fetch the selected account's positions on mount/account-change, then every
+  // 5 s while visible + market open. Positions come from the account; the live
+  // LTPs inside are always quoted via Harsh's paid API (server-side).
+  useEffect(() => {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setData(null); setLoading(true); setErr(null);
+    const once = async () => {
+      try {
+        const r = (await fetchPositions({ account })) as Payload;
+        if (!stopped) { setData(r); setUpdatedAt(Date.now()); setErr(null); }
+      } catch (e) {
+        if (!stopped) setErr(e instanceof Error ? e.message : "Couldn't load positions");
+      } finally {
+        if (!stopped) setLoading(false);
+      }
+    };
+    const tick = async () => {
+      if (stopped) return;
+      if (document.visibilityState === "visible" && marketOpenIST()) await once();
+      timer = setTimeout(tick, 5000);
+    };
+    void once();
+    timer = setTimeout(tick, 5000);
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }, [account, fetchPositions]);
 
-  const stale = Date.now() - (snap?.updatedAt ?? 0) > 5 * 60000;
+  if (loading && !data) return <Shell account={account}><div className="text-sm text-muted">Loading…</div></Shell>;
+  if (err && !data) return <Shell account={account}><div className="card border-bad/40 p-3 text-sm text-bad">{err}</div></Shell>;
 
   return (
     <Shell
+      account={account}
       meta={
-        <span className={stale ? "text-bad" : "text-muted"}>
-          <span className={`mr-2 inline-block h-2 w-2 rounded-full ${data.marketOpen ? "bg-good" : "bg-muted"}`} />
-          {data.marketOpen ? "Market open" : "Market closed"} · {data.fetchedAtIST} · {ago(snap!.updatedAt)}{stale ? " · stale" : ""}
+        <span className="text-muted">
+          <span className={`mr-2 inline-block h-2 w-2 rounded-full ${data?.marketOpen ? "bg-good" : "bg-muted"}`} />
+          {data?.marketOpen ? "Market open" : "Market closed"} · {data?.fetchedAtIST}{updatedAt ? ` · ${ago(updatedAt)}` : ""}
         </span>
       }
     >
-      {data.positions.length === 0 ? (
-        <div className="card p-5 text-sm text-muted">No open F&amp;O positions right now.</div>
+      {!data || data.positions.length === 0 ? (
+        <div className="card p-5 text-sm text-muted">No open F&amp;O positions in {ACCOUNT_LABELS[account]}&apos;s account right now.</div>
       ) : (
         data.positions.map((p) => <Card key={p.symbol} p={p} />)
       )}
       <p className="px-1 text-xs text-muted">
-        Read-only monitor — Convex polls Groww, it never places orders. Order placement stays on the whitelisted VM.
+        Read-only monitor for {ACCOUNT_LABELS[account]}&apos;s account — live rates via Harsh&apos;s API. Never places orders; placement stays on the whitelisted VM.
       </p>
     </Shell>
   );
@@ -158,11 +185,11 @@ function Row({ k, v, vClass = "text-slate-200" }: { k: string; v: string; vClass
   );
 }
 
-function Shell({ children, meta }: { children: React.ReactNode; meta?: React.ReactNode }) {
+function Shell({ children, meta, account }: { children: React.ReactNode; meta?: React.ReactNode; account: "primary" | "aditya" }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-slate-100">Live Position</h2>
+        <h2 className="text-xl font-bold text-slate-100">Live Position · {ACCOUNT_LABELS[account]}</h2>
         {meta && <span className="text-xs">{meta}</span>}
       </div>
       {children}

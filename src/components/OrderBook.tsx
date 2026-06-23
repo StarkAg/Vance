@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Icon } from "./icons";
+import { useAccount } from "../lib/account";
 
 type FnoOrder = {
   _id: string;
@@ -55,6 +56,7 @@ function summarise(orders: FnoOrder[]) {
 }
 
 export default function OrderBook() {
+  const { account } = useAccount();
   const orders = useQuery(api.growwStore.fnoOrderBook) as FnoOrder[] | undefined;
   const [view, setView] = useState<"orders" | "summary">("orders");
 
@@ -64,6 +66,15 @@ export default function OrderBook() {
     () => summary.reduce((s, r) => s + (r.booked ?? 0), 0),
     [summary],
   );
+
+  if (account === "aditya")
+    return (
+      <Shell>
+        <div className="card p-5 text-sm text-muted">
+          Order Book is only synced for Harsh&apos;s account so far. Aditya&apos;s F&amp;O orders aren&apos;t synced into Vance yet — switch to Harsh to view it.
+        </div>
+      </Shell>
+    );
 
   if (orders === undefined)
     return (

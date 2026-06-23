@@ -137,6 +137,12 @@ async function getCachedToken(ctx: ActionCtx): Promise<string> {
   return token;
 }
 
+// Token for the account the device has selected: "aditya" mints fresh from the
+// Aditya creds; anything else ("primary"/Harsh) reuses the cached primary token.
+async function tokenFor(ctx: ActionCtx, account?: string): Promise<string> {
+  return account === "aditya" ? await getAccessToken("aditya") : await getCachedToken(ctx);
+}
+
 export type GrowwHolding = {
   id: string;
   symbol: string;
@@ -148,9 +154,9 @@ export type GrowwHolding = {
 // Current DEMAT holdings — the closest the API offers to "past buys" (the API
 // has NO historical order endpoint; the order book is current-day only).
 export const holdings = action({
-  args: {},
-  handler: async (): Promise<GrowwHolding[]> => {
-    const token = await getAccessToken("aditya");
+  args: { account: v.optional(v.string()) },
+  handler: async (ctx, { account }): Promise<GrowwHolding[]> => {
+    const token = await tokenFor(ctx, account);
     const res = await fetch(`${BASE}/holdings/user`, { headers: headers(token) });
     const data = (await res.json().catch(() => null)) as
       | { payload?: { holdings?: Array<Record<string, unknown>> }; error?: { message?: string } }
@@ -361,18 +367,13 @@ function istStamp(now = new Date()): string {
   }).format(now);
 }
 
-// Poll every open-market minute (convex/crons.ts). Builds one card per open F&O
-// position: live P&L, intrinsic/time value, OCO target/stop status, a suggested
-// trailing stop, expiry countdown, and a plain-English recommendation. Stores a
-// single snapshot row the Live tab subscribes to. READ-ONLY — never places an order.
-export const pollPosition = action({
-  args: {},
-  handler: async (ctx): Promise<{ positions: number; skipped?: string }> => {
-    const open = marketOpenIST();
-    const token = await getCachedToken(ctx);
-
-    // Open F&O positions
-    const posRes = await fetch(`${BASE}/positions/user?segment=FNO`, { headers: headers(token) });
+// Build live position cards (P&L, intrinsic/time value, OCO status, suggested
+// trail stop, expiry countdown, recs, danger alerts). Pure compute, no DB writes.
+// `dataToken` reads the account's positions/OCO; `quoteToken` fetches all live
+// LTPs — always the paid Harsh/primary token, even when acting as Aditya.
+async function buildPositions(ctx: ActionCtx, dataToken: string, quoteToken: string, open: boolean) {
+    // Open F&O positions (account-specific)
+    const posRes = await fetch(`${BASE}/positions/user?segment=FNO`, { headers: headers(dataToken) });
     const posData = (await posRes.json().catch(() => null)) as
       | { payload?: { positions?: Array<Record<string, unknown>> } }
       | null;
@@ -387,7 +388,7 @@ export const pollPosition = action({
     let ocoList: Array<Record<string, unknown>> = [];
     if (raw.length) {
       const ocoRes = await fetch(`${BASE}/order-advance/list?smart_order_type=OCO&segment=FNO&status=ACTIVE`, {
-        headers: headers(token),
+        headers: headers(dataToken),
       });
       const ocoData = (await ocoRes.json().catch(() => null)) as { payload?: { orders?: Array<Record<string, unknown>> } } | null;
       ocoList = ocoData?.payload?.orders ?? [];
@@ -404,13 +405,13 @@ export const pollPosition = action({
       const entry = Number(p.credit_price ?? p.net_price ?? 0);
       const isCall = symbol.endsWith("CE");
 
-      const oq = await quote(token, "FNO", symbol);
+      const oq = await quote(quoteToken, "FNO", symbol);
       const ltp = Number(oq.last_price ?? 0);
       const dayChange = Number(oq.day_change_perc ?? 0);
       const oiChange = Number(oq.oi_day_change_percentage ?? 0);
 
       if (underlyingCache[m.underlying] === undefined) {
-        const uq = await quote(token, "CASH", m.underlying);
+        const uq = await quote(quoteToken, "CASH", m.underlying);
         underlyingCache[m.underlying] = Number(uq.last_price ?? 0);
       }
       const uLtp = underlyingCache[m.underlying];
@@ -467,6 +468,32 @@ export const pollPosition = action({
         suggestedStop, daysToExpiry, expiry: m.expiry, urgency, recs,
       });
     }
+
+    return { positions, alerts, underlyingCache };
+}
+
+// Per-account live F&O positions (on-demand, no DB write, no alerts). Drives the
+// Live tab's account switch: "aditya" → Aditya token, else primary/Harsh.
+export const livePositions = action({
+  args: { account: v.optional(v.string()) },
+  handler: async (ctx, { account }): Promise<{ positions: unknown[]; marketOpen: boolean; fetchedAtIST: string }> => {
+    const open = marketOpenIST();
+    const dataToken = await tokenFor(ctx, account); // account's positions
+    const quoteToken = await getCachedToken(ctx); // live rates always via Harsh (paid)
+    const { positions } = await buildPositions(ctx, dataToken, quoteToken, open);
+    return { positions, marketOpen: open, fetchedAtIST: istStamp() };
+  },
+});
+
+// Poll every open-market minute (convex/crons.ts) for the PRIMARY (Harsh) account:
+// writes the snapshot the Scorecard + agent read, and speaks danger alerts.
+// READ-ONLY — never places an order.
+export const pollPosition = action({
+  args: {},
+  handler: async (ctx): Promise<{ positions: number; skipped?: string }> => {
+    const open = marketOpenIST();
+    const token = await getCachedToken(ctx);
+    const { positions, alerts, underlyingCache } = await buildPositions(ctx, token, token, open);
 
     // Scorecard: booked vs. if-held using live marks. Guarded so a failure here
     // never blocks the open-position snapshot.

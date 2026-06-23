@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useAccount } from "./account";
 
 export type Holding = { id: string; symbol: string; qty: number; price: number; exchange: "NSE" | "BSE" };
 export type HoldingRow = Holding & { ltp: number | null; invested: number; value: number; pnl: number; pnlPct: number };
@@ -10,6 +11,7 @@ export const yahooSymbol = (h: Holding) => `${h.symbol}.${h.exchange === "BSE" ?
 // Live Groww holdings (qty + avg from Groww) marked-to-market with Yahoo prices.
 // Shared by the Holdings tab and the Dashboard so both show the same real numbers.
 export function useGrowwHoldings() {
+  const { account } = useAccount();
   const fetchHoldings = useAction(api.groww.holdings);
   const fetchQuotes = useAction(api.quotes.latest);
 
@@ -23,7 +25,7 @@ export function useGrowwHoldings() {
     setLoading(true);
     setErr(null);
     try {
-      const h = (await fetchHoldings({})) as Holding[];
+      const h = (await fetchHoldings({ account })) as Holding[];
       setHoldings(h);
       setPricing(true);
       const quotes = await fetchQuotes({ symbols: h.map(yahooSymbol) }).catch(() => []);
@@ -38,7 +40,7 @@ export function useGrowwHoldings() {
     }
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [account]);
 
   const rows = useMemo<HoldingRow[]>(
     () =>
