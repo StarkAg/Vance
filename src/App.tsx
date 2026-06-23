@@ -3,6 +3,7 @@ import Dashboard from "./components/Dashboard";
 import Trades from "./components/Trades";
 import Holdings from "./components/Holdings";
 import SectorRotation from "./components/SectorRotation";
+import AdityaSector from "./components/AdityaSector";
 import LivePanel from "./components/LivePanel";
 import Scorecard from "./components/Scorecard";
 import OrderBook from "./components/OrderBook";
@@ -18,6 +19,7 @@ const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
   { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
   { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors" },
+  { id: "aditya", label: "Aditya's Sector", short: "Aditya", icon: "sectors" },
 ];
 
 export default function App() {
@@ -50,6 +52,7 @@ export default function App() {
         {tab === "swing" && <Trades kind="swing" />}
         {tab === "holdings" && <Holdings />}
         {tab === "sectors" && <SectorRotation />}
+        {tab === "aditya" && <AdityaSector />}
       </main>
 
       {/* Tab bar lives at the bottom on every screen size (the app's footer nav). */}
