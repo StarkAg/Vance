@@ -38,7 +38,7 @@ type Idea = {
   target: number;
   stop: number;
 };
-type Ideas = { ideas: Idea[]; marketContext: string; sectorAsOf?: string };
+type Ideas = { ideas: Idea[]; marketContext: string; sectorAsOf?: string; stale?: boolean };
 type IdeaDay = { date: string; generatedAt: number; model: string; payload: string };
 
 const actionStyle: Record<Verdict["action"], string> = {
@@ -72,7 +72,7 @@ export default function AgentPanel() {
   const ideasSnap = useQuery(api.growwStore.agentIdeas) as IdeaDay | null | undefined;
   const history = useQuery(api.growwStore.agentIdeasHistory) as IdeaDay[] | undefined;
   const runReview = useAction(api.agent.reviewPositions);
-  const genIdeas = useAction(api.agent.generateIdeas);
+  const scanAndGenerate = useAction(api.sectorScan.scanAndGenerate);
 
   const [running, setRunning] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -88,7 +88,7 @@ export default function AgentPanel() {
   }
   async function onGenerate() {
     setGenerating(true); setErr(null);
-    try { await genIdeas({}); } catch (e) { setErr(e instanceof Error ? e.message : "Idea generation failed"); } finally { setGenerating(false); }
+    try { await scanAndGenerate({}); } catch (e) { setErr(e instanceof Error ? e.message : "Scan / idea generation failed"); } finally { setGenerating(false); }
   }
 
   return (
@@ -123,16 +123,17 @@ export default function AgentPanel() {
             disabled={generating}
             className="rounded-lg bg-brand/15 px-3 py-1.5 text-sm font-semibold text-brand transition-colors hover:bg-brand/25 disabled:opacity-50"
           >
-            {generating ? "Scanning market…" : "Generate ideas"}
+            {generating ? "Scanning market…" : "Scan & generate ideas"}
           </button>
         </div>
 
         {ideasSnap === undefined ? (
           <div className="text-sm text-muted">Loading…</div>
         ) : !today || today.ideas.length === 0 ? (
-          <div className="card p-5 text-sm text-muted">
+          <div className={`card p-5 text-sm ${today?.stale ? "border-amber-500/40 text-amber-300" : "text-muted"}`}>
+            {today?.stale && <span className="font-semibold">⚠ Stale scan — no ideas generated. </span>}
             {today?.marketContext ?? (
-              <>No ideas yet. Hit <span className="text-brand">Generate ideas</span> to scan the sectors and rank today&apos;s best option trades.</>
+              <>No ideas yet. Hit <span className="text-brand">Scan &amp; generate ideas</span> to pull fresh sector data and rank today&apos;s best option trades.</>
             )}
           </div>
         ) : (
@@ -268,7 +269,7 @@ function IdeaCard({ it }: { it: Idea }) {
         <KV k="Entry" v={`${prem(it.entryLow)}–${prem(it.entryHigh)}`} />
         <KV k="Target" v={prem(it.target)} cls="text-good" />
         <KV k="Stop" v={prem(it.stop)} cls="text-bad" />
-        <KV k={`${it.underlying} spot`} v={money(it.spot)} />
+        <KV k="Spot" v={money(it.spot)} />
         <KV k="Expiry" v={it.expiry} />
         <KV k="Lot" v={String(it.lotSize)} />
         <KV k="Symbol" v={it.symbol} />

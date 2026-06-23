@@ -174,6 +174,46 @@ export const holdings = action({
   },
 });
 
+// Open F&O option positions in the ADITYA account, marked live. Positions come
+// from the aditya token; live LTP/day-change/OI come from the PRIMARY (Harsh)
+// token, which carries the live-data entitlement. Read-only.
+export const adityaFnoPositions = action({
+  args: {},
+  handler: async (ctx): Promise<Array<Record<string, unknown>>> => {
+    const adityaToken = await getAccessToken("aditya");
+    const liveToken = await getCachedToken(ctx); // Harsh/primary — for live rates
+
+    const res = await fetch(`${BASE}/positions/user?segment=FNO`, { headers: headers(adityaToken) });
+    const data = (await res.json().catch(() => null)) as
+      | { payload?: { positions?: Array<Record<string, unknown>> }; error?: { message?: string } }
+      | null;
+    if (!res.ok) {
+      throw new Error(`Groww aditya positions failed (HTTP ${res.status}): ${data?.error?.message ?? "unknown"}`);
+    }
+    const raw = (data?.payload?.positions ?? []).filter((p) => Number(p.quantity ?? 0) !== 0);
+
+    const out: Array<Record<string, unknown>> = [];
+    for (const p of raw) {
+      const symbol = String(p.trading_symbol);
+      const qty = Number(p.quantity ?? 0);
+      const entry = Number(p.credit_price ?? p.net_price ?? p.buy_price ?? 0);
+      const oq = await quote(liveToken, "FNO", symbol);
+      const ltp = Number(oq.last_price ?? 0);
+      out.push({
+        symbol,
+        qty,
+        entry,
+        ltp,
+        pnl: entry ? r2((ltp - entry) * qty) : 0,
+        pnlPct: entry ? r2(((ltp - entry) / entry) * 100) : 0,
+        dayChange: r2(Number(oq.day_change_perc ?? 0)),
+        oiChange: r2(Number(oq.oi_day_change_percentage ?? 0)),
+      });
+    }
+    return out;
+  },
+});
+
 // Fetch the current trading day's order book and persist it to the growwOrders
 // table (upsert by id). The Groww order-list endpoint is day-scoped, so running
 // this regularly — on UI open and via the daily cron (convex/crons.ts) —

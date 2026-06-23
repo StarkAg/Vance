@@ -274,9 +274,34 @@ export const generateIdeas = action({
         date,
         generatedAt: Date.now(),
         model: MODEL,
-        payload: JSON.stringify({ ideas: [], marketContext: "No sector-rotation scan available yet — run the sector feed first.", sectorDataAt: snap?.updatedAt ?? null }),
+        payload: JSON.stringify({ ideas: [], stale: true, marketContext: "No sector-rotation scan available yet — run the sector feed first.", sectorDataAt: snap?.updatedAt ?? null }),
       });
       return { generated: 0, skipped: "no sector data" };
+    }
+
+    // STALENESS GUARD (added after a real loss): the directional thesis is only
+    // as good as the scan it's built on. A bullish CE picked off week-old momentum
+    // burned a real BEL 425 CE trade. So if the sector snapshot isn't fresh, we
+    // REFUSE — no Claude call, no ideas — rather than recommend trades off stale
+    // data. The feed pushes every ~15 min during market hours, so anything older
+    // than 2h means the feed isn't live right now.
+    const STALE_MS = 2 * 60 * 60 * 1000;
+    const sectorAgeMs = Date.now() - (snap?.updatedAt ?? 0);
+    if (!snap?.updatedAt || sectorAgeMs > STALE_MS) {
+      const hrs = snap?.updatedAt ? Math.round(sectorAgeMs / 3_600_000) : null;
+      await ctx.runMutation(internal.growwStore.putAgentIdeas, {
+        date,
+        generatedAt: Date.now(),
+        model: MODEL,
+        payload: JSON.stringify({
+          ideas: [],
+          stale: true,
+          marketContext: `Sector scan is stale (as of ${sect.fetchedAtIST}${hrs != null ? `, ~${hrs}h old` : ""}). Refusing to generate ideas off old momentum — refresh the sector feed (scripts/sector-uptrend.mjs --push) during market hours, then Generate again.`,
+          sectorDataAt: snap?.updatedAt ?? null,
+          sectorAsOf: sect.fetchedAtIST,
+        }),
+      });
+      return { generated: 0, skipped: "stale sector data" };
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
