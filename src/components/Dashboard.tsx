@@ -89,7 +89,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-slate-100">Dashboard</h2>
+        <h2 className="text-xl font-bold text-stone-100">Dashboard</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -112,7 +112,7 @@ export default function Dashboard() {
       </div>
 
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-2 text-sm font-semibold text-slate-100">Swing equity curve (cumulative net P/L)</div>
+        <div className="mb-2 text-sm font-semibold text-stone-100">Swing equity curve (cumulative net P/L)</div>
         {equity.length ? (
           <ChartBox>
             {({ width, height }) => (
@@ -129,7 +129,7 @@ export default function Dashboard() {
       </div>
 
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-2 text-sm font-semibold text-slate-100">Month-wise realized P/L</div>
+        <div className="mb-2 text-sm font-semibold text-stone-100">Month-wise realized P/L</div>
         {monthly.length ? (
           <ChartBox className="h-52 min-w-0 sm:h-64">
             {({ width, height }) => (

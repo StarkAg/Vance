@@ -53,7 +53,7 @@ export default function App() {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/20 text-xs font-bold text-brand">
                 {ACCOUNT_LABELS[account][0]}
               </span>
-              <span className="text-xs font-semibold text-slate-200">{ACCOUNT_LABELS[account]}</span>
+              <span className="text-xs font-semibold text-stone-200">{ACCOUNT_LABELS[account]}</span>
             </button>
             {acctMenu && (
               <>
@@ -64,7 +64,7 @@ export default function App() {
                     <button
                       key={a}
                       onClick={() => selectAccount(a)}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${account === a ? "bg-panel2 text-slate-100" : "text-muted hover:bg-panel2/60"}`}
+                      className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${account === a ? "bg-panel2 text-stone-100" : "text-muted hover:bg-panel2/60"}`}
                     >
                       {ACCOUNT_LABELS[a]}
                       {account === a && <Icon name="check" className="h-4 w-4 text-brand" />}
@@ -75,7 +75,7 @@ export default function App() {
             )}
           </div>
           <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
-            <span className="brand-wordmark text-2xl leading-none text-slate-100">Vance</span>
+            <span className="brand-wordmark text-2xl leading-none text-stone-100">Vance</span>
             <Icon name="trending" className="h-4 w-4 shrink-0 text-brand" />
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function App() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`phone-tab min-w-0 rounded text-[10px] font-medium transition-colors lg:text-xs ${
-                tab === t.id ? "bg-panel2 text-slate-100" : "text-muted hover:text-slate-200"
+                tab === t.id ? "bg-panel2 text-stone-100" : "text-muted hover:text-stone-200"
               }`}
               title={t.label}
             >

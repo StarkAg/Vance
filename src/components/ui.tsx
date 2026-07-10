@@ -55,7 +55,7 @@ export function Stat({
   sub?: ReactNode;
   tone?: "default" | "good" | "bad";
 }) {
-  const toneClass = tone === "good" ? "text-good" : tone === "bad" ? "text-bad" : "text-slate-100";
+  const toneClass = tone === "good" ? "text-good" : tone === "bad" ? "text-bad" : "text-stone-100";
   return (
     <div className="card min-w-0 p-3 sm:p-4">
       <div className="text-xs font-medium text-muted">{label}</div>
@@ -88,8 +88,8 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overflow-x-hidden bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <div className="card flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-b-none rounded-t-2xl p-4 shadow-2xl sm:max-h-[88dvh] sm:rounded sm:p-5">
         <div className="mb-4 flex shrink-0 items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded text-muted hover:bg-panel2 hover:text-slate-200" aria-label="Close">
+          <h3 className="text-lg font-semibold text-stone-100">{title}</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded text-muted hover:bg-panel2 hover:text-stone-200" aria-label="Close">
             <Icon name="close" />
           </button>
         </div>

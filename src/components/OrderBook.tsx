@@ -92,7 +92,7 @@ export default function OrderBook() {
             key={v}
             onClick={() => setView(v)}
             className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-              view === v ? "bg-panel2 text-slate-100" : "text-muted hover:text-slate-200"
+              view === v ? "bg-panel2 text-stone-100" : "text-muted hover:text-stone-200"
             }`}
           >
             {v === "orders" ? "All Orders" : "By Contract"}
@@ -160,7 +160,7 @@ function OrdersTable({ orders }: { orders: FnoOrder[] }) {
               <tbody>
                 {rows.map((o) => (
                   <tr key={o._id} className="border-t border-line/60">
-                    <td className="truncate py-1.5 pr-2 font-medium text-slate-200">
+                    <td className="truncate py-1.5 pr-2 font-medium text-stone-200">
                       {symbolToName(o.symbol)}
                       {o.growwOrderId.startsWith("HIST_") && (
                         <span className="ml-1.5 text-[9px] text-muted">seed</span>
@@ -177,13 +177,13 @@ function OrdersTable({ orders }: { orders: FnoOrder[] }) {
                         {o.side}
                       </span>
                     </td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">
                       {o.qty.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">
                       {inr(o.price)}
                     </td>
-                    <td className="py-1.5 pl-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 pl-2 text-right tabular-nums text-stone-300">
                       {inr(o.price * o.qty)}
                     </td>
                     <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
@@ -237,14 +237,14 @@ function SummaryTable({
                     : "text-bad";
                 return (
                   <tr key={r.symbol} className="border-t border-line/60">
-                    <td className="py-1.5 pr-2 font-medium text-slate-200">{r.name}</td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 pr-2 font-medium text-stone-200">{r.name}</td>
+                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">
                       {inr(r.avgBuy)}
                     </td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">
                       {r.avgSell ? inr(r.avgSell) : "—"}
                     </td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">
+                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">
                       {r.closedQty ? r.closedQty.toLocaleString("en-IN") : "—"}
                     </td>
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted">
@@ -302,7 +302,7 @@ function fmtDate(d: string) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-bold text-slate-100">F&amp;O Order Book</h2>
+      <h2 className="text-xl font-bold text-stone-100">F&amp;O Order Book</h2>
       {children}
     </div>
   );

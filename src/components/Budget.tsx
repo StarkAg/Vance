@@ -53,7 +53,7 @@ export default function Budget() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-slate-100">Monthly Budget</h2>
+          <h2 className="text-xl font-bold text-stone-100">Monthly Budget</h2>
         </div>
         <button className="btn-brand w-full sm:w-auto" onClick={openAdd}>
           <Icon name="plus" />
@@ -69,13 +69,13 @@ export default function Budget() {
               <div key={r._id} className="w-full cursor-pointer p-3 text-left hover:bg-panel2/40" onClick={() => openEdit(r)}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-100">{r.date}</div>
+                    <div className="font-semibold text-stone-100">{r.date}</div>
                     <div className="text-xs text-muted">{r.note || "Monthly allocation"}</div>
                   </div>
                   <div className="flex shrink-0 items-start gap-2">
                     <div className="text-right">
                       <div className="text-xs text-muted">Total</div>
-                      <div className="font-semibold text-slate-100">{money(c.total)}</div>
+                      <div className="font-semibold text-stone-100">{money(c.total)}</div>
                     </div>
                     <span onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => remove({ id: r._id as Id<"budget"> })} />
@@ -187,7 +187,7 @@ function Prev({ k, v }: { k: string; v: number }) {
   return (
     <div className="rounded bg-panel px-2.5 py-1.5">
       <div className="text-[11px] text-muted">{k}</div>
-      <div className="font-semibold text-slate-100">{money(v)}</div>
+      <div className="font-semibold text-stone-100">{money(v)}</div>
     </div>
   );
 }
@@ -196,7 +196,7 @@ function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded bg-panel2/50 px-2.5 py-2">
       <div className="text-[11px] text-muted">{label}</div>
-      <div className="truncate font-semibold text-slate-100">{value}</div>
+      <div className="truncate font-semibold text-stone-100">{value}</div>
     </div>
   );
 }

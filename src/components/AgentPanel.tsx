@@ -115,13 +115,13 @@ export default function AgentPanel() {
     <div className="space-y-5">
       <div className="flex items-center gap-2">
         <Icon name="bot" className="h-5 w-5 text-brand" />
-        <h2 className="text-xl font-bold text-slate-100">Agent</h2>
+        <h2 className="text-xl font-bold text-stone-100">Agent</h2>
       </div>
 
       {/* Goal banner */}
       <div className="card flex items-center gap-3 p-3 text-sm">
         <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-bold text-brand">GOAL</span>
-        <span className="text-slate-300">Find the best option to trade today &amp; protect capital. Everything here is a proposal — you place orders yourself.</span>
+        <span className="text-stone-300">Find the best option to trade today &amp; protect capital. Everything here is a proposal — you place orders yourself.</span>
       </div>
 
       {err && <div className="card border-bad/40 p-3 text-sm text-bad">{err}</div>}
@@ -130,7 +130,7 @@ export default function AgentPanel() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-bold text-slate-100">Best options to trade today</h3>
+            <h3 className="text-base font-bold text-stone-100">Best options to trade today</h3>
             {ideasSnap && (
               <span className="text-xs text-muted">
                 {ideasSnap.date}
@@ -159,7 +159,7 @@ export default function AgentPanel() {
         ) : (
           <>
             {today.marketContext && (
-              <div className="card p-3 text-sm text-slate-300">{today.marketContext}</div>
+              <div className="card p-3 text-sm text-stone-300">{today.marketContext}</div>
             )}
             <div className="space-y-2">
               {today.ideas.map((it) => (
@@ -174,7 +174,7 @@ export default function AgentPanel() {
           <div>
             <button
               onClick={() => setShowHistory((s) => !s)}
-              className="text-xs font-medium text-muted hover:text-slate-200"
+              className="text-xs font-medium text-muted hover:text-stone-200"
             >
               {showHistory ? "▾" : "▸"} History ({history.length} day{history.length === 1 ? "" : "s"})
             </button>
@@ -189,7 +189,7 @@ export default function AgentPanel() {
                         <div className="space-y-1">
                           {p.ideas.map((it) => (
                             <div key={it.symbol} className="flex items-center justify-between gap-2 text-xs">
-                              <span className="truncate text-slate-300">
+                              <span className="truncate text-stone-300">
                                 #{it.rank} {it.underlying} {it.strike} {it.optionType}
                               </span>
                               <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted">
@@ -223,7 +223,7 @@ export default function AgentPanel() {
       {/* ---------- Open-position review ---------- */}
       <div className="space-y-3 border-t border-line/60 pt-5">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-bold text-slate-100">Open-position review</h3>
+          <h3 className="text-base font-bold text-stone-100">Open-position review</h3>
           <div className="flex items-center gap-3">
             {reviewSnap && <span className="text-xs text-muted">reviewed {ago(reviewSnap.updatedAt)}</span>}
             <button
@@ -246,13 +246,13 @@ export default function AgentPanel() {
           <div className="card p-5 text-sm text-muted">{review.summary}</div>
         ) : (
           <>
-            <div className="card p-3 text-sm text-slate-300">{review.summary}</div>
+            <div className="card p-3 text-sm text-stone-300">{review.summary}</div>
             <div className="space-y-2">
               {review.verdicts.map((v) => (
                 <div key={v.symbol} className="card flex items-start justify-between gap-3 p-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-100">{v.symbol}</div>
-                    <p className="mt-0.5 text-sm text-slate-300">{v.reason}</p>
+                    <div className="font-semibold text-stone-100">{v.symbol}</div>
+                    <p className="mt-0.5 text-sm text-stone-300">{v.reason}</p>
                     <div className="mt-1 text-[11px] text-muted">confidence: {v.confidence}</div>
                   </div>
                   <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${actionStyle[v.action]}`}>{v.action}</span>
@@ -280,7 +280,7 @@ function IdeaCard({ it }: { it: Idea }) {
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${best ? "bg-brand/20 text-brand" : "bg-panel2 text-muted"}`}>
               #{it.rank}{best ? " BEST" : ""}
             </span>
-            <span className="font-semibold text-slate-100">
+            <span className="font-semibold text-stone-100">
               {it.underlying} {it.strike}
             </span>
             <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${it.optionType === "CE" ? "bg-good/15 text-good" : "bg-bad/15 text-bad"}`}>
@@ -299,12 +299,12 @@ function IdeaCard({ it }: { it: Idea }) {
         </div>
       </div>
 
-      <p className="mt-2 text-sm text-slate-300">{it.rationale}</p>
+      <p className="mt-2 text-sm text-stone-300">{it.rationale}</p>
 
       {it.nowLtp != null && (
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <span className="text-muted">
-            Now <span className="font-semibold tabular-nums text-slate-200">{prem(it.nowLtp)}</span>
+            Now <span className="font-semibold tabular-nums text-stone-200">{prem(it.nowLtp)}</span>
           </span>
           <span className={`font-semibold tabular-nums ${(it.nowPnlPct ?? 0) >= 0 ? "text-good" : "text-bad"}`}>
             {(it.nowPnlPct ?? 0) >= 0 ? "+" : ""}{it.nowPnlPct}% vs entry
@@ -328,7 +328,7 @@ function IdeaCard({ it }: { it: Idea }) {
   );
 }
 
-function KV({ k, v, cls = "text-slate-200" }: { k: string; v: string; cls?: string }) {
+function KV({ k, v, cls = "text-stone-200" }: { k: string; v: string; cls?: string }) {
   return (
     <div className="flex min-w-0 items-baseline justify-between gap-2">
       <span className="shrink-0 text-muted">{k}</span>

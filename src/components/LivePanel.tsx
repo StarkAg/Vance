@@ -30,7 +30,7 @@ type Payload = { positions: Position[]; marketOpen: boolean; fetchedAtIST: strin
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 const signed = (n: number) => `${n >= 0 ? "+" : ""}${inr(n)}`;
-const pnlClass = (n: number) => (n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-slate-300");
+const pnlClass = (n: number) => (n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-stone-300");
 const urgencyClass: Record<Position["urgency"], string> = {
   ok: "bg-good/15 text-good",
   warn: "bg-amber-500/15 text-amber-400",
@@ -169,14 +169,14 @@ function Card({ p }: { p: Position }) {
       </div>
       <div className="space-y-1.5">
         {p.recs.map((r, i) => (
-          <div key={i} className="rounded-lg border border-line/60 bg-panel2/40 px-3 py-2 text-sm text-slate-200">{r}</div>
+          <div key={i} className="rounded-lg border border-line/60 bg-panel2/40 px-3 py-2 text-sm text-stone-200">{r}</div>
         ))}
       </div>
     </div>
   );
 }
 
-function Row({ k, v, vClass = "text-slate-200" }: { k: string; v: string; vClass?: string }) {
+function Row({ k, v, vClass = "text-stone-200" }: { k: string; v: string; vClass?: string }) {
   return (
     <div className="flex items-baseline justify-between">
       <span className="text-muted">{k}</span>
@@ -189,7 +189,7 @@ function Shell({ children, meta, account }: { children: React.ReactNode; meta?: 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-slate-100">Live Position · {ACCOUNT_LABELS[account]}</h2>
+        <h2 className="text-xl font-bold text-stone-100">Live Position · {ACCOUNT_LABELS[account]}</h2>
         {meta && <span className="text-xs">{meta}</span>}
       </div>
       {children}

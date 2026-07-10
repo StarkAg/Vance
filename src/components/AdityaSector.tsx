@@ -16,7 +16,7 @@ type RankRow = {
 type Payload = { d1: Ranked[]; d5: Ranked[]; both: string[]; ranking: RankRow[]; fetchedAtIST: string };
 
 const pctClass = (n: number | null | undefined) =>
-  n == null ? "text-muted" : n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-slate-300";
+  n == null ? "text-muted" : n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-stone-300";
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n > 0 ? "+" : ""}${n}%`);
 
 function ago(ms: number) {
@@ -60,7 +60,7 @@ export default function AdityaSector() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-slate-100">Aditya&apos;s Sector</h2>
+        <h2 className="text-xl font-bold text-stone-100">Aditya&apos;s Sector</h2>
         <div className="flex items-center gap-3">
           {data && (
             <span className={stale ? "text-xs text-bad" : "text-xs text-muted"}>
@@ -79,7 +79,7 @@ export default function AdityaSector() {
       </div>
 
       <div className="card flex items-center gap-3 p-3 text-sm">
-        <span className="text-slate-300">
+        <span className="text-stone-300">
           1-Day top-10 vs 5-Day top-10 sectors. Sectors in <span className="font-semibold text-brand">both</span> lists are
           confirmed uptrends — a 1-day pop without a 5-day trend behind it isn&apos;t real.
         </span>
@@ -97,7 +97,7 @@ export default function AdityaSector() {
         <>
           {/* Bullishness ranking — confirmed (in-both) sectors float to the top */}
           <div className="card min-w-0 p-3 sm:p-4">
-            <div className="mb-1 text-sm font-semibold text-slate-100">Bullishness ranking</div>
+            <div className="mb-1 text-sm font-semibold text-stone-100">Bullishness ranking</div>
             <div className="mb-3 text-xs text-muted">
               Ranked by combined top-10 strength · ◆ = in both 1D &amp; 5D top-10 (confirmed uptrend)
             </div>
@@ -118,7 +118,7 @@ export default function AdityaSector() {
                   {data.ranking.map((r) => (
                     <tr key={r.sector} className={`border-t border-line/60 ${r.inBoth ? "bg-brand/10" : ""}`}>
                       <td className="py-1.5 pr-2 tabular-nums text-muted">{r.bullRank}</td>
-                      <td className="py-1.5 px-2 font-medium text-slate-200">
+                      <td className="py-1.5 px-2 font-medium text-stone-200">
                         {r.inBoth && <span className="mr-1 text-brand">◆</span>}
                         {r.sector}
                       </td>
@@ -126,7 +126,7 @@ export default function AdityaSector() {
                       <td className={`py-1.5 px-2 text-right tabular-nums ${pctClass(r.d5)}`}>{pct(r.d5)}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-muted">{r.d1Rank ?? "—"}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-muted">{r.d5Rank ?? "—"}</td>
-                      <td className="py-1.5 pl-2 text-right font-semibold tabular-nums text-slate-200">{r.score}</td>
+                      <td className="py-1.5 pl-2 text-right font-semibold tabular-nums text-stone-200">{r.score}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -152,7 +152,7 @@ export default function AdityaSector() {
 function Top10({ title, rows, both }: { title: string; rows: Ranked[]; both: Set<string> }) {
   return (
     <div className="card min-w-0 p-3 sm:p-4">
-      <div className="mb-3 text-sm font-semibold text-slate-100">{title}</div>
+      <div className="mb-3 text-sm font-semibold text-stone-100">{title}</div>
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-muted">
@@ -167,7 +167,7 @@ function Top10({ title, rows, both }: { title: string; rows: Ranked[]; both: Set
             return (
               <tr key={r.sector} className={`border-t border-line/60 ${inBoth ? "bg-brand/10" : ""}`}>
                 <td className="py-1.5 pr-2 tabular-nums text-muted">{r.rank}</td>
-                <td className="py-1.5 px-2 font-medium text-slate-200">
+                <td className="py-1.5 px-2 font-medium text-stone-200">
                   {inBoth && <span className="mr-1 text-brand">◆</span>}
                   {r.sector}
                 </td>
