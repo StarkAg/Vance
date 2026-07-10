@@ -11,15 +11,15 @@ import AgentPanel from "./components/AgentPanel";
 import { Icon, type IconName } from "./components/icons";
 import { useAccount, ACCOUNT_LABELS, type Account } from "./lib/account";
 
-const TABS: { id: string; label: string; short: string; icon: IconName }[] = [
+const TABS: { id: string; label: string; short: string; icon: IconName; accounts?: Account[] }[] = [
   { id: "dashboard", label: "Dashboard", short: "Home", icon: "dashboard" },
   { id: "live", label: "Live Position", short: "Live", icon: "pulse" },
-  { id: "agent", label: "Agent", short: "Agent", icon: "bot" },
-  { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending" },
-  { id: "orders", label: "Order Book", short: "Orders", icon: "list" },
+  { id: "agent", label: "Agent", short: "Agent", icon: "bot", accounts: ["primary"] },
+  { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending", accounts: ["primary"] },
+  { id: "orders", label: "Order Book", short: "Orders", icon: "list", accounts: ["primary"] },
   { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
   { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
-  { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors" },
+  { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors", accounts: ["primary"] },
   { id: "aditya", label: "Aditya's Sector", short: "Aditya", icon: "sectors" },
 ];
 
@@ -27,6 +27,16 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const { account, setAccount } = useAccount();
   const [acctMenu, setAcctMenu] = useState(false);
+  const visibleTabs = TABS.filter((t) => !t.accounts || t.accounts.includes(account));
+
+  const selectAccount = (a: Account) => {
+    setAccount(a);
+    setAcctMenu(false);
+    const currentTab = TABS.find((t) => t.id === tab);
+    if (currentTab?.accounts && !currentTab.accounts.includes(a)) {
+      setTab("dashboard");
+    }
+  };
 
   return (
     <div className="min-h-full overflow-x-hidden pt-[57px]">
@@ -53,7 +63,7 @@ export default function App() {
                   {(["primary", "aditya"] as Account[]).map((a) => (
                     <button
                       key={a}
-                      onClick={() => { setAccount(a); setAcctMenu(false); }}
+                      onClick={() => selectAccount(a)}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${account === a ? "bg-panel2 text-slate-100" : "text-muted hover:bg-panel2/60"}`}
                     >
                       {ACCOUNT_LABELS[a]}
@@ -87,9 +97,9 @@ export default function App() {
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-2 shadow-2xl backdrop-blur">
         <div
           className="phone-nav mx-auto w-full max-w-[1800px] 2xl:max-w-[2200px]"
-          style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}
         >
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
