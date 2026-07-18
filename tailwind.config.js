@@ -4,16 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Shiv Hardware Attendance theme (dark mode palette) — warm parchment/brass instead of neutral black/gold.
-        ink: "#12110f",
-        panel: "#1a1815",
-        panel2: "#211e1a",
-        line: "rgba(255,255,255,0.10)",
-        muted: "#a8a29e",
-        brand: "#c9a45c",
-        good: "#7fae63",
-        bad: "#d3595c",
-        warn: "#d9a441",
+        // Black/grey base with a gold accent (no warm brown cast).
+        ink: "#050505",
+        panel: "#0d0d0d",
+        panel2: "#171717",
+        line: "#2a2a2a",
+        muted: "#9a9a9a",
+        brand: "#d8b45a",
+        good: "#2dd4bf",
+        bad: "#fb7185",
+        warn: "#f59e0b",
       },
       fontFamily: {
         sans: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],

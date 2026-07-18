@@ -121,11 +121,15 @@ function next6amIstEpoch(): number {
 }
 
 // Token reused across the per-minute poll: read the cached row, mint only when
-// it's expired (or within 5 min of expiry), then persist the fresh one.
-async function getCachedToken(ctx: ActionCtx): Promise<string> {
-  const cached = await ctx.runQuery(internal.growwStore.getToken, {});
+// it's expired (or within 5 min of expiry), then persist the fresh one. Groww
+// rate-limits its token-mint endpoint, so every account (not just primary) must
+// go through this cache — minting fresh on every call (as "aditya" used to)
+// blows through that limit and holdings/positions calls start failing with 429s.
+async function getCachedToken(ctx: ActionCtx, account?: Account): Promise<string> {
+  const storeKey = account === "aditya" ? "aditya" : undefined;
+  const cached = await ctx.runQuery(internal.growwStore.getToken, { account: storeKey });
   if (cached && cached.exp > Math.floor(Date.now() / 1000) + 300) return cached.token;
-  const token = await getAccessToken();
+  const token = await getAccessToken(account);
   let exp = Math.floor(Date.now() / 1000) + 3600;
   try {
     exp = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString()).exp ?? exp;
@@ -133,14 +137,14 @@ async function getCachedToken(ctx: ActionCtx): Promise<string> {
     // keep the conservative 1h fallback
   }
   exp = Math.min(exp, next6amIstEpoch()); // never trust a token past Groww's 6 AM reset
-  await ctx.runMutation(internal.growwStore.putToken, { token, exp });
+  await ctx.runMutation(internal.growwStore.putToken, { token, exp, account: storeKey });
   return token;
 }
 
-// Token for the account the device has selected: "aditya" mints fresh from the
-// Aditya creds; anything else ("primary"/Harsh) reuses the cached primary token.
+// Token for the account the device has selected — always via the cache so we
+// don't re-mint (and rate-limit) on every call.
 async function tokenFor(ctx: ActionCtx, account?: string): Promise<string> {
-  return account === "aditya" ? await getAccessToken("aditya") : await getCachedToken(ctx);
+  return getCachedToken(ctx, account === "aditya" ? "aditya" : "primary");
 }
 
 export type GrowwHolding = {
@@ -186,7 +190,7 @@ export const holdings = action({
 export const adityaFnoPositions = action({
   args: {},
   handler: async (ctx): Promise<Array<Record<string, unknown>>> => {
-    const adityaToken = await getAccessToken("aditya");
+    const adityaToken = await getCachedToken(ctx, "aditya");
     const liveToken = await getCachedToken(ctx); // Harsh/primary — for live rates
 
     const res = await fetch(`${BASE}/positions/user?segment=FNO`, { headers: headers(adityaToken) });
@@ -227,7 +231,7 @@ export const adityaFnoPositions = action({
 export const syncOrders = action({
   args: {},
   handler: async (ctx): Promise<{ inserted: number; updated: number; synced: number }> => {
-    const token = await getAccessToken("aditya");
+    const token = await getCachedToken(ctx, "aditya");
     const res = await fetch(`${BASE}/order/list?segment=CASH&page=0&page_size=100`, {
       headers: headers(token),
     });

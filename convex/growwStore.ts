@@ -158,21 +158,21 @@ export const putAgentIdeas = internalMutation({
   },
 });
 
-// Cached access token read/write (single row).
+// Cached access token read/write — one row per account (undefined = primary).
 export const getToken = internalQuery({
-  args: {},
-  handler: async (ctx) => {
+  args: { account: v.optional(v.string()) },
+  handler: async (ctx, { account }) => {
     const rows = await ctx.db.query("growwToken").collect();
-    return rows.length ? rows[0] : null;
+    return rows.find((r) => r.account === account) ?? null;
   },
 });
 
 export const putToken = internalMutation({
-  args: { token: v.string(), exp: v.number() },
-  handler: async (ctx, { token, exp }) => {
+  args: { token: v.string(), exp: v.number(), account: v.optional(v.string()) },
+  handler: async (ctx, { token, exp, account }) => {
     const existing = await ctx.db.query("growwToken").collect();
-    for (const row of existing) await ctx.db.delete(row._id);
-    await ctx.db.insert("growwToken", { token, exp });
+    for (const row of existing.filter((r) => r.account === account)) await ctx.db.delete(row._id);
+    await ctx.db.insert("growwToken", { token, exp, account });
   },
 });
 

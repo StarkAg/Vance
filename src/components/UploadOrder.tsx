@@ -224,7 +224,7 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
             <div className="grid h-12 w-12 place-items-center rounded bg-brand/10 text-brand">
               <Icon name="import" className="h-6 w-6" />
             </div>
-            <div className="text-sm font-medium text-stone-200">Drop Groww order screenshots, or click to choose</div>
+            <div className="text-sm font-medium text-slate-200">Drop Groww order screenshots, or click to choose</div>
             <div className="text-xs text-muted">Select multiple images at once — each is read by AI for accurate extraction.</div>
           </div>
           {busy && (
@@ -245,14 +245,14 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="text-muted">
-              {items.length} screenshot{items.length > 1 ? "s" : ""} read · <span className="text-stone-200">{importable.length} ready</span>
+              {items.length} screenshot{items.length > 1 ? "s" : ""} read · <span className="text-slate-200">{importable.length} ready</span>
             </span>
             <div className="flex items-center gap-3">
-              <button className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-stone-200 disabled:opacity-50" onClick={() => fileRef.current?.click()} disabled={busy}>
+              <button className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-slate-200 disabled:opacity-50" onClick={() => fileRef.current?.click()} disabled={busy}>
                 <Icon name="plus" className="h-3.5 w-3.5" />
                 Add more
               </button>
-              <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-stone-200 disabled:opacity-50" onClick={reset} disabled={busy}>
+              <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-slate-200 disabled:opacity-50" onClick={reset} disabled={busy}>
                 <Icon name="reset" className="h-3.5 w-3.5" />
                 Start over
               </button>
@@ -344,7 +344,7 @@ function ItemCard({
           <option value="SELL">SELL</option>
         </select>
         <span className="min-w-0 flex-1 truncate text-xs text-muted" title={it.fileName}>{it.fileName}</span>
-        {summary && <span className={`shrink-0 text-xs font-semibold ${summary.cls ?? "text-stone-100"}`}>{summary.k}: {summary.v}</span>}
+        {summary && <span className={`shrink-0 text-xs font-semibold ${summary.cls ?? "text-slate-100"}`}>{summary.k}: {summary.v}</span>}
         <button className="shrink-0 text-muted hover:text-bad" onClick={onRemove} aria-label="Remove" title="Remove">
           <Icon name="close" className="h-4 w-4" />
         </button>

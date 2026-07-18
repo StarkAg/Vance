@@ -18,7 +18,7 @@ type Pick = { sector: Sector; stocks: Stock[] };
 type Stock = { name: string; scId: string; price: number | null; chg: number | null; mcap: number | null; trend: string };
 type Payload = { ranked: Sector[]; broad: Sector[]; picks: Pick[]; fetchedAtIST: string };
 
-const pctClass = (n: number | null | undefined) => (n == null ? "text-muted" : n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-stone-300");
+const pctClass = (n: number | null | undefined) => (n == null ? "text-muted" : n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-slate-300");
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n > 0 ? "+" : ""}${n}%`);
 const cr = (n: number | null) => (n == null ? "—" : n >= 100000 ? `₹${(n / 100000).toFixed(2)}L Cr` : `₹${n.toLocaleString("en-IN")} Cr`);
 const trendClass = (t: string) =>
@@ -62,14 +62,14 @@ export default function SectorRotation() {
     >
       {/* Buy candidates first — that's the actionable output */}
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-1 text-sm font-semibold text-stone-100">Dip-in-strength buy candidates</div>
+        <div className="mb-1 text-sm font-semibold text-slate-100">Dip-in-strength buy candidates</div>
         <div className="mb-3 text-xs text-muted">Broad sectors (breadth ≥ 30%) · stocks red today · mcap ≥ ₹500 Cr · biggest dip first</div>
         {data.picks.some((p) => p.stocks.length) ? (
           <div className="space-y-4">
             {data.picks.map((p) => (
               <div key={p.sector.s}>
                 <div className="mb-1.5 flex items-baseline gap-2">
-                  <span className="text-sm font-semibold text-stone-200">{p.sector.s}</span>
+                  <span className="text-sm font-semibold text-slate-200">{p.sector.s}</span>
                   <span className="text-xs text-brand">breadth {(p.sector.breadth * 100).toFixed(0)}%</span>
                   <span className="text-xs text-muted">score {p.sector.score}</span>
                 </div>
@@ -96,9 +96,9 @@ export default function SectorRotation() {
                       <tbody>
                         {p.stocks.map((st) => (
                           <tr key={st.scId} className="border-t border-line/60">
-                            <td className="truncate py-1.5 pr-2 font-medium text-stone-200">{st.name}</td>
+                            <td className="truncate py-1.5 pr-2 font-medium text-slate-200">{st.name}</td>
                             <td className={`py-1.5 px-2 text-right font-semibold ${pctClass(st.chg)}`}>{pct(st.chg)}</td>
-                            <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">₹{st.price?.toLocaleString("en-IN") ?? "—"}</td>
+                            <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">₹{st.price?.toLocaleString("en-IN") ?? "—"}</td>
                             <td className="py-1.5 px-2 text-right tabular-nums text-muted">{cr(st.mcap)}</td>
                             <td className={`py-1.5 pl-2 text-right text-xs ${trendClass(st.trend)}`}>{st.trend || "—"}</td>
                           </tr>
@@ -119,7 +119,7 @@ export default function SectorRotation() {
 
       {/* Full ranked sector table */}
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-1 text-sm font-semibold text-stone-100">Aligned uptrend sectors</div>
+        <div className="mb-1 text-sm font-semibold text-slate-100">Aligned uptrend sectors</div>
         <div className="mb-3 text-xs text-muted">Positive on 3M, 1M &amp; 1W · ranked by momentum + breadth · ◆ = broad</div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
@@ -139,14 +139,14 @@ export default function SectorRotation() {
                 const broad = x.breadth >= 0.3;
                 return (
                   <tr key={x.s} className={`border-t border-line/60 ${broad ? "bg-brand/5" : ""}`}>
-                    <td className="py-1.5 pr-2 font-medium text-stone-200">
+                    <td className="py-1.5 pr-2 font-medium text-slate-200">
                       {broad && <span className="mr-1 text-brand">◆</span>}{x.s}
                     </td>
                     <td className={`py-1.5 px-2 text-right ${pctClass(x.m3)}`}>{pct(x.m3)}</td>
                     <td className={`py-1.5 px-2 text-right ${pctClass(x.m1)}`}>{pct(x.m1)}</td>
                     <td className={`py-1.5 px-2 text-right ${pctClass(x.w1)}`}>{pct(x.w1)}</td>
                     <td className={`py-1.5 px-2 text-right tabular-nums ${x.breadth > 0 ? "text-good" : "text-bad"}`}>{(x.breadth * 100).toFixed(0)}%</td>
-                    <td className="py-1.5 px-2 text-right font-semibold tabular-nums text-stone-200">{x.score}</td>
+                    <td className="py-1.5 px-2 text-right font-semibold tabular-nums text-slate-200">{x.score}</td>
                     <td className={`py-1.5 pl-2 text-right text-xs ${trendClass(x.trend)}`}>{x.trend || "—"}</td>
                   </tr>
                 );
@@ -167,7 +167,7 @@ function Shell({ children, meta }: { children: React.ReactNode; meta?: React.Rea
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-stone-100">Sector Rotation</h2>
+        <h2 className="text-xl font-bold text-slate-100">Sector Rotation</h2>
         {meta && <span className="text-xs">{meta}</span>}
       </div>
       {children}

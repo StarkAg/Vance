@@ -80,6 +80,14 @@ export default defineSchema({
     payload: v.string(), // JSON: { d1, d5, both, ranking, fetchedAtIST }
   }),
 
+  // VCP (Volatility Contraction Pattern) scan snapshot — Minervini-style detection
+  // over a sector universe (Yahoo daily OHLCV). Single-row table, refreshed from
+  // the VCP tab. Algorithm adapted from pkjmesra/PKScreener's validateVCP.
+  vcpScan: defineTable({
+    updatedAt: v.number(), // epoch ms when scanned
+    payload: v.string(), // JSON: { scannedAtIST, universe, results: [...] }
+  }),
+
   // Live F&O position panel. A Convex cron (convex/crons.ts) polls Groww every
   // minute during market hours and writes one snapshot row here; the Live tab
   // reads the latest. Payload is JSON-stringified (array of position cards with
@@ -114,10 +122,12 @@ export default defineSchema({
   }).index("by_date", ["date"]),
 
   // Cached Groww access token (expires daily at 6 AM IST). Lets the per-minute
-  // poll reuse one token instead of re-minting every run. Single-row table.
+  // poll reuse one token instead of re-minting every run. One row per account
+  // ("account" omitted/undefined means the primary/Harsh account).
   growwToken: defineTable({
     token: v.string(),
     exp: v.number(), // epoch seconds (JWT exp)
+    account: v.optional(v.string()),
   }),
 
   // Resolved instrument metadata (expiry, strike, underlying, lot size) for held

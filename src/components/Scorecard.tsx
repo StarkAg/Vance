@@ -24,7 +24,7 @@ type Payload = { trades: Trade[]; marketOpen: boolean; fetchedAtIST: string };
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${inr(Math.abs(n))}`;
-const cls = (n: number) => (n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-stone-300");
+const cls = (n: number) => (n > 0 ? "text-good" : n < 0 ? "text-bad" : "text-slate-300");
 const pctStr = (n: number, dp = 0) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(dp)}%`;
 
 // Calendar days held (first buy → final sell), floored at 1 for intraday.
@@ -97,7 +97,7 @@ export default function Scorecard() {
             return (
               <div key={t.symbol} className="rounded-lg border border-line/60 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="font-semibold text-stone-100 text-sm leading-tight">
+                  <span className="font-semibold text-slate-100 text-sm leading-tight">
                     {t.name}
                     {t.note && <span className="ml-1 text-[10px] text-muted">ⓘ</span>}
                   </span>
@@ -155,13 +155,13 @@ export default function Scorecard() {
                 const perDay = ret != null && days ? ret / days : null;
                 return (
                   <tr key={t.symbol} className="border-t border-line/60">
-                    <td className="py-1.5 pr-2 font-medium text-stone-200">
+                    <td className="py-1.5 pr-2 font-medium text-slate-200">
                       {t.name}
                       {t.note && <span className="ml-1 text-[10px] text-muted">ⓘ</span>}
                     </td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">{t.buy}</td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-300">{t.sell ?? "—"}</td>
-                    <td className="py-1.5 px-2 text-right tabular-nums text-stone-400">{t.ltp || "—"}</td>
+                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">{t.buy}</td>
+                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-300">{t.sell ?? "—"}</td>
+                    <td className="py-1.5 px-2 text-right tabular-nums text-slate-400">{t.ltp || "—"}</td>
                     <td className={`py-1.5 px-2 text-right font-semibold tabular-nums ${cls(t.booked ?? 0)}`}>{t.booked != null ? signed(t.booked) : "—"}</td>
                     <td className={`py-1.5 px-2 text-right tabular-nums ${ret == null ? "text-muted" : cls(ret)}`}>{ret == null ? "—" : pctStr(ret)}</td>
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted">{days || "—"}</td>
@@ -209,7 +209,7 @@ function Shell({ children, meta }: { children: React.ReactNode; meta?: React.Rea
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold text-stone-100">Trade Scorecard</h2>
+        <h2 className="text-xl font-bold text-slate-100">Trade Scorecard</h2>
         {meta && <span className="text-xs">{meta}</span>}
       </div>
       {children}

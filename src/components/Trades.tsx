@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { tradeCalc, type TradeRow } from "../lib/calc";
 import { money, pct, signClass, fmtDate } from "../lib/format";
-import { Field, Modal, ConfirmDelete, Stat, Count } from "./ui";
+import { Field, Modal, ConfirmDelete, Stat, StatGroup, Count } from "./ui";
 import UploadOrder from "./UploadOrder";
 import GrowwOrders from "./GrowwOrders";
 import { Icon } from "./icons";
@@ -96,7 +96,7 @@ export default function Trades({ kind }: { kind: Kind }) {
     return { openInvested, openValue, closedInvested, closedNetProfit, wins, closed, winRate: closed ? wins / closed : 0, n: calc.length };
   }, [calc]);
 
-  const [sort, setSort] = useState<SortState>(null);
+  const [sort, setSort] = useState<SortState>(kind === "swing" ? { key: "buy", dir: "desc" } : null);
   const sorted = useMemo(() => {
     if (!sort) return calc;
     const sign = sort.dir === "asc" ? 1 : -1;
@@ -200,14 +200,19 @@ export default function Trades({ kind }: { kind: Kind }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold text-stone-100">{title}</h2>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-100">{title}</h2>
+          <button
+            className="grid h-8 w-8 shrink-0 place-items-center rounded border border-line text-muted transition-colors hover:bg-panel2 hover:text-slate-200 disabled:opacity-50"
+            onClick={refreshLivePrices}
+            disabled={refreshingPrices}
+            title={refreshingPrices ? "Refreshing…" : "Refresh prices"}
+            aria-label={refreshingPrices ? "Refreshing…" : "Refresh prices"}
+          >
+            <Icon name="reset" className={`h-4 w-4 ${refreshingPrices ? "animate-spin" : ""}`} />
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          <button className="btn-ghost col-span-2 sm:col-span-1" onClick={refreshLivePrices} disabled={refreshingPrices}>
-            <Icon name="reset" />
-            {refreshingPrices ? "Refreshing" : "Refresh prices"}
-          </button>
           <button className="btn-ghost" onClick={() => setGrowwOpen(true)}>
             <Icon name="trending" />
             From Groww
@@ -227,12 +232,12 @@ export default function Trades({ kind }: { kind: Kind }) {
       <UploadOrder kind={kind} open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <GrowwOrders kind={kind} open={growwOpen} onClose={() => setGrowwOpen(false)} />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <StatGroup>
         <Stat label="Invested" value={<Count value={totals.openInvested} format={money} />} sub="Open trades" />
-        <Stat label="Net P/L" value={<Count value={totals.closedNetProfit} format={money} />} tone={totals.closedNetProfit >= 0 ? "good" : "bad"} sub={pct(totals.closedInvested ? totals.closedNetProfit / totals.closedInvested : 0)} />
         <Stat label="Current value" value={<Count value={totals.openValue} format={money} />} sub="Open trades" />
+        <Stat label="Net P/L" value={<Count value={totals.closedNetProfit} format={money} />} tone={totals.closedNetProfit >= 0 ? "good" : "bad"} sub={pct(totals.closedInvested ? totals.closedNetProfit / totals.closedInvested : 0)} />
         <Stat label="Win rate" value={<Count value={totals.winRate} format={pct} />} sub={`${totals.wins}/${totals.closed} profitable · ${totals.n} total`} />
-      </div>
+      </StatGroup>
 
       <div className="card overflow-hidden xl:overflow-visible">
         <div className="flex items-center gap-2 border-b border-line p-3 xl:hidden">
@@ -264,7 +269,7 @@ export default function Trades({ kind }: { kind: Kind }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className={`truncate font-semibold ${c.closed ? "text-stone-100" : "text-warn"}`}>{r.name || "Unnamed"}</span>
+                    <span className={`truncate font-semibold ${c.closed ? "text-slate-100" : "text-warn"}`}>{r.name || "Unnamed"}</span>
                     {!c.closed && <span className="chip shrink-0 bg-warn/15 text-warn">open</span>}
                   </div>
                   <div className="mt-0.5 text-xs text-muted">
@@ -432,7 +437,7 @@ function Prev({ k, v, cls }: { k: string; v: string; cls?: string }) {
   return (
     <div className="rounded bg-panel px-1.5 py-1.5">
       <div className="text-[11px] text-muted">{k}</div>
-      <div className={`font-semibold ${cls ?? "text-stone-100"}`}>{v}</div>
+      <div className={`font-semibold ${cls ?? "text-slate-100"}`}>{v}</div>
     </div>
   );
 }
@@ -454,7 +459,7 @@ function SortHeader({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex w-full items-center gap-1 uppercase tracking-wide transition-colors hover:text-stone-200 ${align === "right" ? "justify-end" : "justify-start"}`}
+        className={`inline-flex w-full items-center gap-1 uppercase tracking-wide transition-colors hover:text-slate-200 ${align === "right" ? "justify-end" : "justify-start"}`}
         title={`Sort by ${label}`}
       >
         <span>{label}</span>
@@ -468,7 +473,7 @@ function Mini({ label, value, cls }: { label: string; value: string; cls?: strin
   return (
     <div className="min-w-0 rounded bg-panel2/50 px-1.5 py-2">
       <div className="text-[11px] text-muted">{label}</div>
-      <div className={`truncate font-semibold ${cls ?? "text-stone-100"}`}>{value || "N/A"}</div>
+      <div className={`truncate font-semibold ${cls ?? "text-slate-100"}`}>{value || "N/A"}</div>
     </div>
   );
 }

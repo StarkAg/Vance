@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { money, pct, signClass } from "../lib/format";
 import { useGrowwHoldings } from "../lib/useGrowwHoldings";
-import { Stat, Count } from "./ui";
+import { Stat, StatGroup, Count } from "./ui";
 import { Icon } from "./icons";
 
 // Live Groww holdings, marked-to-market with Yahoo prices (Groww live-data is a
@@ -16,7 +16,7 @@ export default function Holdings() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-stone-100">Holdings</h2>
+          <h2 className="text-xl font-bold text-slate-100">Holdings</h2>
         </div>
         <button className="btn-ghost" onClick={() => void load()} disabled={loading}>
           <Icon name="reset" className={loading ? "animate-spin" : ""} />
@@ -30,12 +30,12 @@ export default function Holdings() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <StatGroup>
         <Stat label="Invested" value={<Count value={totals.invested} format={money} />} sub={`${rows.length} holdings`} />
         <Stat label="Current value" value={<Count value={totals.value} format={money} />} sub="mark-to-market" />
         <Stat label="Total P/L" value={<Count value={totals.pnl} format={money} />} tone={totals.pnl >= 0 ? "good" : "bad"} sub={pct(totals.pnlPct)} />
         <Stat label="Return" value={<Count value={totals.pnlPct} format={pct} />} tone={totals.pnl >= 0 ? "good" : "bad"} sub="overall" />
-      </div>
+      </StatGroup>
 
       <div className="card overflow-hidden xl:overflow-visible">
         {/* Mobile cards */}
@@ -45,7 +45,7 @@ export default function Holdings() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-semibold text-stone-100">{r.symbol}</span>
+                    <span className="truncate font-semibold text-slate-100">{r.symbol}</span>
                     <span className="chip shrink-0 bg-panel text-muted">{r.exchange}</span>
                   </div>
                   <div className="mt-0.5 text-xs text-muted">{r.qty} qty · avg {money(r.price)} · LTP {r.ltp != null ? money(r.ltp) : "—"}</div>
@@ -109,7 +109,7 @@ function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded bg-panel2/50 px-1.5 py-2">
       <div className="text-[11px] text-muted">{label}</div>
-      <div className="truncate font-semibold text-stone-100">{value}</div>
+      <div className="truncate font-semibold text-slate-100">{value}</div>
     </div>
   );
 }

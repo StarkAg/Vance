@@ -96,7 +96,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 text-xs text-muted">
             <span>{syncing ? "Syncing latest orders…" : `${orders.length} order${orders.length === 1 ? "" : "s"} · synced on open + daily`}</span>
-            <button className="inline-flex items-center gap-1 text-brand hover:text-stone-200 disabled:opacity-50" onClick={() => void sync()} disabled={syncing}>
+            <button className="inline-flex items-center gap-1 text-brand hover:text-slate-200 disabled:opacity-50" onClick={() => void sync()} disabled={syncing}>
               <Icon name="reset" className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
               Sync now
             </button>
@@ -106,7 +106,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
 
           {orders.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted">
-              No orders yet. Groww's API only exposes the <span className="text-stone-200">current trading day's</span> orders, so
+              No orders yet. Groww's API only exposes the <span className="text-slate-200">current trading day's</span> orders, so
               they're captured here on each sync (open + daily) and build up over time.
             </div>
           ) : (
@@ -122,7 +122,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
                   Select all ({orders.length})
                 </label>
                 <span className="text-xs text-muted">
-                  <span className="text-stone-200">{selected.length}</span> selected · {money(value)}
+                  <span className="text-slate-200">{selected.length}</span> selected · {money(value)}
                 </span>
               </div>
 
@@ -138,7 +138,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`chip shrink-0 ${o.side === "BUY" ? "bg-good/15 text-good" : "bg-bad/15 text-bad"}`}>{o.side}</span>
-                          <span className="truncate font-semibold text-stone-100">{o.symbol}</span>
+                          <span className="truncate font-semibold text-slate-100">{o.symbol}</span>
                           <span className="chip shrink-0 bg-panel text-muted">{o.exchange}</span>
                         </div>
                         <div className="mt-0.5 text-xs text-muted">
@@ -149,7 +149,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="text-xs text-muted">Value</div>
-                        <div className="font-semibold text-stone-100">{money(o.qty * o.price)}</div>
+                        <div className="font-semibold text-slate-100">{money(o.qty * o.price)}</div>
                       </div>
                     </label>
                   );

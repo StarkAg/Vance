@@ -53,7 +53,7 @@ export default function Ledger() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-stone-100">Ledger</h2>
+          <h2 className="text-xl font-bold text-slate-100">Ledger</h2>
         </div>
         <button className="btn-brand w-full sm:w-auto" onClick={openAdd}>
           <Icon name="plus" />
@@ -69,7 +69,7 @@ export default function Ledger() {
             <button
               key={a}
               onClick={() => setAccount(a)}
-              className={`min-w-0 rounded border px-3 py-2 text-left text-sm transition-colors ${a === account ? "border-brand bg-brand/10 text-stone-100" : "border-line bg-panel hover:bg-panel2 text-muted"}`}
+              className={`min-w-0 rounded border px-3 py-2 text-left text-sm transition-colors ${a === account ? "border-brand bg-brand/10 text-slate-100" : "border-line bg-panel hover:bg-panel2 text-muted"}`}
             >
               <div className="truncate font-semibold">{a}</div>
               <div className="text-xs">{last ? `${money(last.displayBalance)} ${last.flag}` : "—"}</div>
@@ -80,10 +80,10 @@ export default function Ledger() {
 
       <div className="card overflow-hidden">
         <div className="flex flex-col gap-1 border-b border-line px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-          <h3 className="font-semibold text-stone-100">{account}</h3>
+          <h3 className="font-semibold text-slate-100">{account}</h3>
           {balance && (
             <span className="text-sm text-muted">
-              Balance <span className="font-semibold text-stone-100">{money(balance.displayBalance)}</span> {balance.flag}
+              Balance <span className="font-semibold text-slate-100">{money(balance.displayBalance)}</span> {balance.flag}
             </span>
           )}
         </div>
@@ -92,7 +92,7 @@ export default function Ledger() {
             <div key={r._id} className="w-full cursor-pointer p-3 text-left hover:bg-panel2/40" onClick={() => openEdit(r)}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-semibold text-stone-100">#{i + 1} · {fmtDate(r.date)}</div>
+                  <div className="font-semibold text-slate-100">#{i + 1} · {fmtDate(r.date)}</div>
                   <div className="truncate text-xs text-muted">{r.particular}</div>
                 </div>
                 <span onClick={(e) => e.stopPropagation()}>
@@ -169,7 +169,7 @@ function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded bg-panel2/50 px-2.5 py-2">
       <div className="text-[11px] text-muted">{label}</div>
-      <div className="truncate font-semibold text-stone-100">{value}</div>
+      <div className="truncate font-semibold text-slate-100">{value}</div>
     </div>
   );
 }
