@@ -19,7 +19,7 @@ export default function Holdings() {
           <h2 className="text-xl font-bold text-slate-100">Holdings</h2>
         </div>
         <button className="btn-ghost" onClick={() => void load()} disabled={loading}>
-          <Icon name="reset" className={loading ? "animate-spin" : ""} />
+          <Icon name="reset" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? "Loading" : "Refresh"}
         </button>
       </div>

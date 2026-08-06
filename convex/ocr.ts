@@ -3,6 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Read a Groww "Order Details" screenshot with Claude Sonnet vision and return
@@ -25,10 +26,13 @@ Output ONLY a JSON object with exactly these keys (use null when unreadable):
 No prose, no markdown fences — only the JSON object.`;
 
 type Media = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+const MODEL = "claude-sonnet-4-6";
+const INPUT_USD_PER_MILLION = 3;
+const OUTPUT_USD_PER_MILLION = 15;
 
 export const extractOrder = action({
-  args: { image: v.string(), mediaType: v.string() }, // image = base64 (no data: prefix)
-  handler: async (ctx, { image, mediaType }) => {
+  args: { image: v.string(), mediaType: v.string(), kind: v.optional(v.string()) }, // image = base64 (no data: prefix)
+  handler: async (ctx, { image, mediaType, kind }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new Error("ANTHROPIC_API_KEY not set. Run: npx convex env set ANTHROPIC_API_KEY sk-ant-...");
@@ -39,7 +43,7 @@ export const extractOrder = action({
       : "image/jpeg") as Media;
 
     const resp = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: MODEL,
       max_tokens: 700,
       system: SYSTEM,
       messages: [
@@ -52,6 +56,17 @@ export const extractOrder = action({
         },
       ],
     });
+
+    const inputTokens = resp.usage?.input_tokens ?? 0;
+    const outputTokens = resp.usage?.output_tokens ?? 0;
+    const costUsd = inputTokens * INPUT_USD_PER_MILLION / 1_000_000 + outputTokens * OUTPUT_USD_PER_MILLION / 1_000_000;
+    try {
+      await ctx.runMutation(internal.ocrStore.recordUsage, {
+        at: Date.now(), model: MODEL, inputTokens, outputTokens, costUsd, kind: kind ?? "unknown",
+      });
+    } catch {
+      // OCR should still succeed if usage persistence is temporarily unavailable.
+    }
 
     const textBlock = resp.content.find((b) => b.type === "text");
     const raw = textBlock && textBlock.type === "text" ? textBlock.text : "";
@@ -87,6 +102,7 @@ export const extractOrder = action({
       date: parsed.date ?? null,
       exchange: parsed.exchange ?? null,
       status: parsed.status ?? null,
+      usage: { inputTokens, outputTokens, costUsd },
     } as {
       side: "BUY" | "SELL" | null;
       stockName: string | null;
@@ -96,6 +112,7 @@ export const extractOrder = action({
       date: string | null;
       exchange: "NSE" | "BSE" | null;
       status: "success" | "failed" | null;
+      usage: { inputTokens: number; outputTokens: number; costUsd: number };
     };
   },
 });

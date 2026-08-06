@@ -71,7 +71,7 @@ export default function SectorRotation() {
                 <div className="mb-1.5 flex items-baseline gap-2">
                   <span className="text-sm font-semibold text-slate-200">{p.sector.s}</span>
                   <span className="text-xs text-brand">breadth {(p.sector.breadth * 100).toFixed(0)}%</span>
-                  <span className="text-xs text-muted">score {p.sector.score}</span>
+                  <span className="text-xs text-muted">positive on 3M, 1M &amp; 1W</span>
                 </div>
                 {p.stocks.length ? (
                   <div className="overflow-x-auto">
@@ -130,7 +130,7 @@ export default function SectorRotation() {
                 <th className="py-1 px-2 text-right font-medium">1M</th>
                 <th className="py-1 px-2 text-right font-medium">1W</th>
                 <th className="py-1 px-2 text-right font-medium">Breadth</th>
-                <th className="py-1 px-2 text-right font-medium">Score</th>
+                <th className="py-1 px-2 font-medium">Why trending</th>
                 <th className="py-1 pl-2 text-right font-medium">Trend</th>
               </tr>
             </thead>
@@ -146,7 +146,9 @@ export default function SectorRotation() {
                     <td className={`py-1.5 px-2 text-right ${pctClass(x.m1)}`}>{pct(x.m1)}</td>
                     <td className={`py-1.5 px-2 text-right ${pctClass(x.w1)}`}>{pct(x.w1)}</td>
                     <td className={`py-1.5 px-2 text-right tabular-nums ${x.breadth > 0 ? "text-good" : "text-bad"}`}>{(x.breadth * 100).toFixed(0)}%</td>
-                    <td className="py-1.5 px-2 text-right font-semibold tabular-nums text-slate-200">{x.score}</td>
+                    <td className="py-1.5 px-2 text-xs text-slate-300">
+                      {broad ? `Positive 3M, 1M & 1W · ${(x.breadth * 100).toFixed(0)}% breadth` : "—"}
+                    </td>
                     <td className={`py-1.5 pl-2 text-right text-xs ${trendClass(x.trend)}`}>{x.trend || "—"}</td>
                   </tr>
                 );

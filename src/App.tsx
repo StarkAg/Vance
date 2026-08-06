@@ -18,11 +18,12 @@ const TABS: { id: string; label: string; short: string; icon: IconName; accounts
   { id: "agent", label: "Agent", short: "Agent", icon: "bot", accounts: ["primary"] },
   { id: "scorecard", label: "Scorecard", short: "Score", icon: "trending", accounts: ["primary"] },
   { id: "orders", label: "Order Book", short: "Orders", icon: "list", accounts: ["primary"] },
-  { id: "swing", label: "Swing Trading", short: "Swing", icon: "trending" },
-  { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
+  { id: "swing", label: "News Swing", short: "News Swing", icon: "trending" },
+  { id: "vcpSwing", label: "VCP Swing", short: "VCP Swing", icon: "trending" },
+  // { id: "holdings", label: "Holdings", short: "Holds", icon: "holdings" },
   { id: "sectors", label: "Sector Rotation", short: "Sectors", icon: "sectors", accounts: ["primary"] },
   { id: "aditya", label: "Aditya's Sector", short: "Aditya", icon: "sectors" },
-  { id: "vcp", label: "VCP Scan", short: "VCP", icon: "trending" },
+  { id: "vcp", label: "VCP Scan", short: "VCP", icon: "trending", accounts: ["primary"] },
 ];
 
 export default function App() {
@@ -85,11 +86,12 @@ export default function App() {
 
       <main className="mx-auto w-full max-w-[1800px] px-3 pb-28 pt-5 sm:px-4 sm:pt-6 2xl:max-w-[2200px] 2xl:px-6">
         {tab === "dashboard" && <Dashboard />}
-        {tab === "live" && <LivePanel />}
+        {tab === "live" && (account === "aditya" ? <Holdings /> : <LivePanel />)}
         {tab === "agent" && <AgentPanel />}
         {tab === "scorecard" && <Scorecard />}
         {tab === "orders" && <OrderBook />}
         {tab === "swing" && <Trades kind="swing" />}
+        {tab === "vcpSwing" && <Trades kind="vcpSwing" />}
         {tab === "holdings" && <Holdings />}
         {tab === "sectors" && <SectorRotation />}
         {tab === "aditya" && <AdityaSector />}

@@ -107,6 +107,17 @@ body {
   .input {
     @apply min-h-11 w-full rounded bg-panel2 border border-line px-3 py-2 text-base text-slate-100 outline-none focus:border-brand placeholder:text-muted/60 sm:text-sm;
   }
+  select.input {
+    @apply cursor-pointer appearance-none pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.09 1.04l-4.25 4.5a.75.75 0 0 1-1.1 0l-4.25-4.5a.75.75 0 0 1 .03-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
+  }
+  select.input option {
+    background: #161b22;
+    color: #f1f5f9;
+  }
   .label {
     @apply text-xs font-medium text-muted mb-1 block;
   }

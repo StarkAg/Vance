@@ -9,7 +9,7 @@ import UploadOrder from "./UploadOrder";
 import GrowwOrders from "./GrowwOrders";
 import { Icon } from "./icons";
 
-type Kind = "swing" | "yearly";
+type Kind = "swing" | "vcpSwing" | "yearly";
 
 type Draft = {
   buyDate: string;
@@ -61,7 +61,8 @@ const sortValue = (e: Entry, key: SortKey): string | number | undefined => {
 };
 
 export default function Trades({ kind }: { kind: Kind }) {
-  const apiMod = kind === "swing" ? api.swing : api.yearly;
+  const apiMod = kind === "swing" ? api.swing : kind === "vcpSwing" ? api.vcpSwing : api.yearly;
+  const isSwingJournal = kind !== "yearly";
   const rowsData = useQuery(apiMod.list);
   const rows = useMemo(() => (rowsData ?? []) as TradeRow[], [rowsData]);
   const add = useMutation(apiMod.add);
@@ -96,7 +97,7 @@ export default function Trades({ kind }: { kind: Kind }) {
     return { openInvested, openValue, closedInvested, closedNetProfit, wins, closed, winRate: closed ? wins / closed : 0, n: calc.length };
   }, [calc]);
 
-  const [sort, setSort] = useState<SortState>(kind === "swing" ? { key: "buy", dir: "desc" } : null);
+  const [sort, setSort] = useState<SortState>(isSwingJournal ? { key: "buy", dir: "desc" } : null);
   const sorted = useMemo(() => {
     if (!sort) return calc;
     const sign = sort.dir === "asc" ? 1 : -1;
@@ -141,7 +142,7 @@ export default function Trades({ kind }: { kind: Kind }) {
       currentPrice: opt(d.currentPrice) ?? (d.sellDate ? undefined : num(d.buyPrice)),
       charges: num(d.charges),
     };
-    if (kind === "swing") base.feedback = d.feedback || undefined;
+    if (isSwingJournal) base.feedback = d.feedback || undefined;
     if (editId) await update({ id: editId, ...base } as Parameters<typeof update>[0]);
     else await add(base as Parameters<typeof add>[0]);
     setOpen(false);
@@ -191,7 +192,7 @@ export default function Trades({ kind }: { kind: Kind }) {
     }
   };
 
-  const title = kind === "swing" ? "Swing Trading" : "Yearly Stock";
+  const title = kind === "swing" ? "News Swing" : kind === "vcpSwing" ? "VCP Swing" : "Yearly Stock";
   const preview = tradeCalc({
     _id: "x", buyDate: d.buyDate, sellDate: d.sellDate || undefined, qty: num(d.qty),
     buyPrice: num(d.buyPrice), sellPrice: opt(d.sellPrice), currentPrice: opt(d.currentPrice) ?? (d.sellDate ? undefined : num(d.buyPrice)), charges: num(d.charges),
@@ -242,26 +243,28 @@ export default function Trades({ kind }: { kind: Kind }) {
       <div className="card overflow-hidden xl:overflow-visible">
         <div className="flex items-center gap-2 border-b border-line p-3 xl:hidden">
           <span className="shrink-0 text-xs font-medium text-muted">Sort by</span>
-          <select
-            className="input flex-1 py-1.5"
-            value={sort?.key ?? ""}
-            onChange={(e) => setSort(e.target.value ? { key: e.target.value as SortKey, dir: sort?.dir ?? "asc" } : null)}
-          >
-            <option value="">Default order</option>
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.key} value={o.key}>{o.label}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="btn-ghost shrink-0 px-3"
-            onClick={() => sort && setSort({ key: sort.key, dir: sort.dir === "asc" ? "desc" : "asc" })}
-            disabled={!sort}
-            aria-label="Toggle sort direction"
-            title="Toggle sort direction"
-          >
-            {sort?.dir === "desc" ? "▼ Desc" : "▲ Asc"}
-          </button>
+          <div className="flex min-w-0 flex-1 overflow-hidden rounded border border-line bg-panel2 transition-colors focus-within:border-brand">
+            <select
+              className="input min-h-10 flex-1 rounded-none border-0 bg-transparent py-1.5 focus:border-0"
+              value={sort?.key ?? ""}
+              onChange={(e) => setSort(e.target.value ? { key: e.target.value as SortKey, dir: sort?.dir ?? "asc" } : null)}
+            >
+              <option value="">Default order</option>
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="flex min-h-10 shrink-0 items-center border-l border-line px-3 text-xs font-semibold text-slate-200 transition-colors hover:bg-panel hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => sort && setSort({ key: sort.key, dir: sort.dir === "asc" ? "desc" : "asc" })}
+              disabled={!sort}
+              aria-label="Toggle sort direction"
+              title="Toggle sort direction"
+            >
+              {sort?.dir === "desc" ? "↓ Desc" : "↑ Asc"}
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-line xl:hidden">
           {sorted.map(({ r, c }) => (
@@ -292,9 +295,9 @@ export default function Trades({ kind }: { kind: Kind }) {
                 <Mini label={c.closed ? "Sell" : "Current"} value={(c.closed ? r.sellPrice : r.currentPrice)?.toString() ?? "N/A"} />
                 <Mini label="Invested" value={money(c.invested)} />
                 <Mini label="Net %" value={pct(c.netProfitPct)} cls={tradeTone(c.closed, c.netProfit)} />
-                {kind === "swing" && <Mini label="Days" value={String(c.days)} />}
+                {isSwingJournal && <Mini label="Days" value={String(c.days)} />}
               </div>
-              {kind === "swing" && r.feedback && <div className="mt-2 truncate text-xs text-muted">{r.feedback}</div>}
+              {isSwingJournal && r.feedback && <div className="mt-2 truncate text-xs text-muted">{r.feedback}</div>}
             </div>
           ))}
           {calc.length === 0 && <div className="p-3 text-sm text-muted">No trades yet.</div>}
@@ -302,7 +305,7 @@ export default function Trades({ kind }: { kind: Kind }) {
 
         <div className="hidden xl:block xl:overflow-x-auto">
           <table className="min-w-[1600px] table-fixed text-[13px] 2xl:min-w-[1900px] 2xl:text-sm">
-            {kind === "swing" ? (
+            {isSwingJournal ? (
               <colgroup>
                 <col className="w-[30%]" />
                 <col className="w-[5.5%]" />
@@ -336,14 +339,14 @@ export default function Trades({ kind }: { kind: Kind }) {
                 <SortHeader label="Stock" sortKey="name" sort={sort} onSort={toggleSort} className="px-1" />
                 <SortHeader label="Buy" sortKey="buy" sort={sort} onSort={toggleSort} className="px-1" />
                 <th className="th px-1">Sell</th>
-                {kind === "swing" && <th className="th px-1 text-right">Days</th>}
+                {isSwingJournal && <th className="th px-1 text-right">Days</th>}
                 <th className="th px-1 text-right">Qty</th>
                 <th className="th px-1 text-right">Buy ₹</th>
                 <th className="th px-1 text-right">Sell/Cur</th>
                 <SortHeader label="Invested" sortKey="invested" sort={sort} onSort={toggleSort} align="right" className="px-1" />
                 <th className="th px-1 text-right">Return</th>
                 <SortHeader label="Net %" sortKey="netPct" sort={sort} onSort={toggleSort} align="right" className="px-1" />
-                {kind === "swing" && <th className="th pl-5 pr-1">Feedback</th>}
+                {isSwingJournal && <th className="th pl-5 pr-1">Feedback</th>}
                 <th className="th"></th>
               </tr>
             </thead>
@@ -356,14 +359,14 @@ export default function Trades({ kind }: { kind: Kind }) {
                   </td>
                   <td className="td px-1">{fmtDate(r.buyDate)}</td>
                   <td className="td px-1">{fmtDate(r.sellDate)}</td>
-                  {kind === "swing" && <td className="td px-1 text-right">{c.days}</td>}
+                  {isSwingJournal && <td className="td px-1 text-right">{c.days}</td>}
                   <td className="td px-1 text-right">{r.qty}</td>
                   <td className="td px-1 text-right">{r.buyPrice}</td>
                   <td className="td px-1 text-right">{c.closed ? r.sellPrice : r.currentPrice}</td>
                   <td className="td px-1 text-right">{money(c.invested)}</td>
                   <td className={`td px-1 text-right ${tradeTone(c.closed, c.grossReturn)}`}>{money(c.grossReturn)}</td>
                   <td className={`td px-1 text-right ${tradeTone(c.closed, c.netProfit)}`}>{pct(c.netProfitPct)}</td>
-                  {kind === "swing" && (
+                  {isSwingJournal && (
                     <td className="td whitespace-normal pl-5 pr-1 leading-snug text-muted" title={r.feedback}>
                       {r.feedback || <span className="text-muted/60">—</span>}
                     </td>
@@ -374,7 +377,7 @@ export default function Trades({ kind }: { kind: Kind }) {
                 </tr>
               ))}
               {calc.length === 0 && (
-                <tr><td className="td text-muted" colSpan={kind === "swing" ? 12 : 10}>No trades yet.</td></tr>
+                <tr><td className="td text-muted" colSpan={isSwingJournal ? 12 : 10}>No trades yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -402,7 +405,7 @@ export default function Trades({ kind }: { kind: Kind }) {
             <Field label="Sell price"><input className="input" inputMode="decimal" value={d.sellPrice} onChange={(e) => setD({ ...d, sellPrice: e.target.value })} /></Field>
             <Field label="Current price (blank = buy)"><input className="input" inputMode="decimal" value={d.currentPrice} onChange={(e) => setD({ ...d, currentPrice: e.target.value })} /></Field>
             <Field label="Charges"><input className="input" inputMode="decimal" value={d.charges} onChange={(e) => setD({ ...d, charges: e.target.value })} /></Field>
-            {kind === "swing" && (
+            {isSwingJournal && (
               <div className="sm:col-span-3"><Field label="Feedback"><input className="input" value={d.feedback} onChange={(e) => setD({ ...d, feedback: e.target.value })} /></Field></div>
             )}
           </div>

@@ -9,7 +9,9 @@ import { money, signClass, fmtDate } from "../lib/format";
 import { Field, Modal } from "./ui";
 import { Icon } from "./icons";
 
-type Kind = "swing" | "yearly";
+type Kind = "swing" | "vcpSwing" | "yearly";
+type OcrUsage = { calls: number; inputTokens: number; outputTokens: number; costUsd: number };
+const APPROX_INR_PER_USD = 96;
 
 // Read a File as base64 (no data: prefix) + its media type, for the vision action.
 const fileToBase64 = (file: File) =>
@@ -76,7 +78,7 @@ const itemValid = (it: ReviewItem): boolean =>
       : false;
 
 export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open: boolean; onClose: () => void }) {
-  const apiMod = kind === "swing" ? api.swing : api.yearly;
+  const apiMod = kind === "swing" ? api.swing : kind === "vcpSwing" ? api.vcpSwing : api.yearly;
   const allData = useQuery(apiMod.list);
   const all = useMemo(() => (allData ?? []) as TradeRow[], [allData]);
   const add = useMutation(apiMod.add);
@@ -90,11 +92,12 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
   const [current, setCurrent] = useState(0);
   const [total, setTotal] = useState(0);
   const [items, setItems] = useState<ReviewItem[]>([]);
+  const [ocrUsage, setOcrUsage] = useState<OcrUsage>({ calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 });
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
-    setItems([]); setErr(null); setProgress(0); setCurrent(0); setTotal(0);
+    setItems([]); setOcrUsage({ calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 }); setErr(null); setProgress(0); setCurrent(0); setTotal(0);
   };
   const close = () => { reset(); onClose(); };
 
@@ -129,7 +132,15 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
           try {
             // Primary: Claude Sonnet vision (accurate, reads ₹/labels/qty).
             const { data, mediaType } = await fileToBase64(files[i]);
-            const r = await extractOrder({ image: data, mediaType });
+            const r = await extractOrder({ image: data, mediaType, kind });
+            if (r.usage) {
+              setOcrUsage((prev) => ({
+                calls: prev.calls + 1,
+                inputTokens: prev.inputTokens + r.usage.inputTokens,
+                outputTokens: prev.outputTokens + r.usage.outputTokens,
+                costUsd: prev.costUsd + r.usage.costUsd,
+              }));
+            }
             parsed = { ...r, raw: "" };
           } catch {
             // Fallback: on-device model if the API call fails (e.g. key not set).
@@ -176,7 +187,7 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
             buyPrice: Number(it.price) || 0,
             currentPrice: Number(it.price) || undefined,
             charges: 0,
-            ...(kind === "swing" ? { feedback: undefined } : {}),
+            ...(kind !== "yearly" ? { feedback: undefined } : {}),
           } as Parameters<typeof add>[0]);
         } else if (it.side === "SELL") {
           const t = openTrades.find((o) => o._id === it.targetId);
@@ -193,7 +204,7 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
             charges: t.charges,
             budget: t.budget,
             other: t.other,
-            ...(kind === "swing" ? { feedback: t.feedback } : {}),
+            ...(kind !== "yearly" ? { feedback: t.feedback } : {}),
           } as Parameters<typeof update>[0]);
         }
       }
@@ -269,6 +280,13 @@ export default function UploadOrder({ kind, open, onClose }: { kind: Kind; open:
           )}
 
           {err && <div className="rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{err}</div>}
+
+          {ocrUsage.calls > 0 && (
+            <div className="rounded border border-line bg-panel2/50 px-3 py-2 text-xs text-muted">
+              AI OCR usage: {ocrUsage.calls} screenshot{ocrUsage.calls === 1 ? "" : "s"} · {ocrUsage.inputTokens.toLocaleString()} input + {ocrUsage.outputTokens.toLocaleString()} output tokens ·
+              <span className="ml-1 font-semibold text-slate-200">${ocrUsage.costUsd.toFixed(4)} (~₹{(ocrUsage.costUsd * APPROX_INR_PER_USD).toFixed(2)})</span>
+            </div>
+          )}
 
           <div className="space-y-3">
             {items.map((it) => (

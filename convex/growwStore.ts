@@ -176,6 +176,14 @@ export const putToken = internalMutation({
   },
 });
 
+export const clearToken = internalMutation({
+  args: { account: v.optional(v.string()) },
+  handler: async (ctx, { account }) => {
+    const rows = await ctx.db.query("growwToken").collect();
+    for (const row of rows.filter((r) => r.account === account)) await ctx.db.delete(row._id);
+  },
+});
+
 // Instrument metadata cache (expiry/strike/underlying) keyed by trading symbol.
 export const getInstruments = internalQuery({
   args: { symbols: v.array(v.string()) },

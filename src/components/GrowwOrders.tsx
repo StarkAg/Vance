@@ -5,13 +5,13 @@ import { money, fmtDate } from "../lib/format";
 import { Modal } from "./ui";
 import { Icon } from "./icons";
 
-type Kind = "swing" | "yearly";
+type Kind = "swing" | "vcpSwing" | "yearly";
 const today = () => new Date().toISOString().slice(0, 10);
 
 // One full list of all Groww orders (the accumulated history — persisted on each
 // sync, since the API only exposes the current trading day). Select & add as trades.
 export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open: boolean; onClose: () => void }) {
-  const apiMod = kind === "swing" ? api.swing : api.yearly;
+  const apiMod = kind === "swing" ? api.swing : kind === "vcpSwing" ? api.vcpSwing : api.yearly;
   const add = useMutation(apiMod.add);
   const syncOrders = useAction(api.groww.syncOrders);
   const savedOrders = useQuery(api.growwStore.savedOrders);
@@ -74,7 +74,7 @@ export default function GrowwOrders({ kind, open, onClose }: { kind: Kind; open:
           buyPrice: o.price,
           currentPrice: o.price,
           charges: 0,
-          ...(kind === "swing" ? { feedback: undefined } : {}),
+          ...(kind !== "yearly" ? { feedback: undefined } : {}),
         } as Parameters<typeof add>[0]);
       }
       onClose();

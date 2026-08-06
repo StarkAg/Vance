@@ -6,18 +6,17 @@ import {
 import { api } from "../../convex/_generated/api";
 import { tradeCalc, type TradeRow } from "../lib/calc";
 import { money, pct } from "../lib/format";
-import { useGrowwHoldings } from "../lib/useGrowwHoldings";
-import { Stat, StatGroup, Count } from "./ui";
+import { Stat, Count } from "./ui";
 
 export default function Dashboard() {
   const swingData = useQuery(api.swing.list);
-  const yearlyData = useQuery(api.yearly.list);
+  const vcpSwingData = useQuery(api.vcpSwing.list);
 
   const swing = useMemo(() => (swingData ?? []) as TradeRow[], [swingData]);
-  const yearly = useMemo(() => (yearlyData ?? []) as TradeRow[], [yearlyData]);
+  const vcpSwing = useMemo(() => (vcpSwingData ?? []) as TradeRow[], [vcpSwingData]);
 
   const swingC = useMemo(() => swing.map((r) => tradeCalc(r)), [swing]);
-  const yearlyC = useMemo(() => yearly.map((r) => tradeCalc(r)), [yearly]);
+  const vcpSwingC = useMemo(() => vcpSwing.map((r) => tradeCalc(r)), [vcpSwing]);
 
   const agg = (arr: ReturnType<typeof tradeCalc>[]) => {
     let invested = 0, net = 0, value = 0, wins = 0, closed = 0, openInvested = 0, openCount = 0;
@@ -28,28 +27,22 @@ export default function Dashboard() {
     }
     return { invested, net, value, wins, closed, winRate: closed ? wins / closed : 0, openInvested, openCount };
   };
-  const s = agg(swingC), y = agg(yearlyC);
-  const totalNet = s.net + y.net;
-  const totalInvested = s.invested + y.invested;
-  const totalOpenInvested = s.openInvested + y.openInvested;
-  const totalOpenCount = s.openCount + y.openCount;
+  const s = agg(swingC), v = agg(vcpSwingC);
+  const combined = {
+    invested: s.invested + v.invested,
+    net: s.net + v.net,
+    wins: s.wins + v.wins,
+    closed: s.closed + v.closed,
+    winRate: s.closed + v.closed ? (s.wins + v.wins) / (s.closed + v.closed) : 0,
+    openInvested: s.openInvested + v.openInvested,
+    openCount: s.openCount + v.openCount,
+  };
 
-  // Headline portfolio stats come from live Groww holdings (actual invested,
-  // positions, current value, unrealized P/L). Fall back to the journal only if
-  // holdings can't be loaded (e.g. token not set) — using only open (still-held)
-  // swing/yearly trades, not the all-time total across closed trades too.
-  const h = useGrowwHoldings();
-  const real = !h.loading && !h.err && h.totals.count > 0;
-  const investedView = real ? h.totals.invested : totalOpenInvested;
-  const positionsView = real ? h.totals.count : totalOpenCount;
-  const netView = real ? h.totals.pnl : totalNet;
-  const netPctView = real ? h.totals.pnlPct : totalInvested ? totalNet / totalInvested : 0;
-
-  // Month-wise realized net P/L (closed swing + yearly trades, grouped by sell month)
+  // Month-wise realized net P/L across the two active swing journals only.
   const monthly = useMemo(() => {
     const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const byMonth = new Map<string, number>();
-    for (const r of [...swing, ...yearly]) {
+    for (const r of [...swing, ...vcpSwing]) {
       const c = tradeCalc(r);
       if (!c.closed || !r.sellDate) continue;
       const key = r.sellDate.slice(0, 7); // YYYY-MM
@@ -61,7 +54,7 @@ export default function Dashboard() {
         const [yr, mo] = key.split("-");
         return { month: `${MONTHS[Number(mo) - 1]} '${yr.slice(2)}`, pnl: Math.round(pnl) };
       });
-  }, [swing, yearly]);
+  }, [swing, vcpSwing]);
 
   // Y-axis domain with headroom on both ends so value labels never clip
   const pnlDomain = useMemo(() => {
@@ -72,9 +65,9 @@ export default function Dashboard() {
     return [Math.round(min - pad), Math.round(max + pad)] as [number, number];
   }, [monthly]);
 
-  // Swing cumulative P/L over time (by sell date)
+  // Cumulative P/L across News Swing and VCP Swing, by sell date.
   const equity = useMemo(() => {
-    const closed = swing
+    const closed = [...swing, ...vcpSwing]
       .map((r) => ({ r, c: tradeCalc(r) }))
       .filter(({ c }) => c.closed)
       .sort((a, b) => (a.r.sellDate! < b.r.sellDate! ? -1 : 1));
@@ -82,7 +75,7 @@ export default function Dashboard() {
       date: r.sellDate!.slice(5),
       pnl: Math.round(closed.slice(0, i + 1).reduce((sum, { c }) => sum + c.netProfit, 0)),
     }));
-  }, [swing]);
+  }, [swing, vcpSwing]);
 
   return (
     <div className="space-y-5">
@@ -90,26 +83,12 @@ export default function Dashboard() {
         <h2 className="text-xl font-bold text-slate-100">Dashboard</h2>
       </div>
 
-      <StatGroup>
-        {/* While Groww holdings load, show a placeholder rather than the journal
-            fallback — otherwise the cards flash ~33 positions / ₹1.77L before
-            snapping to the real holdings. */}
-        <Stat
-          label={h.loading || real ? "Holdings P/L (unrealized)" : "Total Net P/L"}
-          value={h.loading ? <span className="text-muted">…</span> : <Count value={netView} format={money} />}
-          tone={netView >= 0 ? "good" : "bad"}
-          sub={h.loading ? "loading…" : pct(netPctView)}
-        />
-        <Stat
-          label="Capital invested"
-          value={h.loading ? <span className="text-muted">…</span> : <Count value={investedView} format={money} />}
-          sub={h.loading ? "—" : `${positionsView} ${real ? "holdings" : "positions"}`}
-        />
-        <Stat label="Swing win rate" value={<Count value={s.winRate} format={pct} />} sub={`${s.wins}/${s.closed} closed`} />
-      </StatGroup>
+      <div className="card overflow-hidden">
+        <StrategySummary title="News Swing + VCP Swing details" totals={combined} />
+      </div>
 
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-2 text-sm font-semibold text-slate-100">Swing equity curve (cumulative net P/L)</div>
+        <div className="mb-2 text-sm font-semibold text-slate-100">News Swing &amp; VCP Swing equity curve (cumulative net P/L)</div>
         {equity.length ? (
           <ChartBox>
             {({ width, height }) => (
@@ -126,7 +105,7 @@ export default function Dashboard() {
       </div>
 
       <div className="card min-w-0 p-3 sm:p-4">
-        <div className="mb-2 text-sm font-semibold text-slate-100">Month-wise realized P/L</div>
+        <div className="mb-2 text-sm font-semibold text-slate-100">News Swing &amp; VCP Swing realized P/L</div>
         {monthly.length ? (
           <ChartBox className="h-52 min-w-0 sm:h-64">
             {({ width, height }) => (
@@ -154,6 +133,34 @@ export default function Dashboard() {
       </div>
 
     </div>
+  );
+}
+
+function StrategySummary({
+  title,
+  totals,
+}: {
+  title: string;
+  totals: {
+    invested: number;
+    net: number;
+    wins: number;
+    closed: number;
+    winRate: number;
+    openInvested: number;
+    openCount: number;
+  };
+}) {
+  const netPct = totals.invested ? totals.net / totals.invested : 0;
+  return (
+    <section className="p-3 sm:p-4">
+      <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-3">
+        <Stat label="Total Net P/L" value={<Count value={totals.net} format={money} />} tone={totals.net >= 0 ? "good" : "bad"} sub={pct(netPct)} />
+        <Stat label="Capital invested" value={<Count value={totals.invested} format={money} />} sub={`${totals.openCount + totals.closed} positions`} />
+        <Stat label="Win rate" value={<Count value={totals.winRate} format={pct} />} sub={`${totals.wins}/${totals.closed} closed`} />
+      </div>
+    </section>
   );
 }
 
@@ -192,4 +199,3 @@ function ChartBox({
 function Empty() {
   return <div className="flex h-full items-center justify-center text-sm text-muted">No data yet</div>;
 }
-

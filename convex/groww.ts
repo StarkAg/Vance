@@ -125,10 +125,10 @@ function next6amIstEpoch(): number {
 // rate-limits its token-mint endpoint, so every account (not just primary) must
 // go through this cache — minting fresh on every call (as "aditya" used to)
 // blows through that limit and holdings/positions calls start failing with 429s.
-async function getCachedToken(ctx: ActionCtx, account?: Account): Promise<string> {
+async function getCachedToken(ctx: ActionCtx, account?: Account, forceRefresh = false): Promise<string> {
   const storeKey = account === "aditya" ? "aditya" : undefined;
   const cached = await ctx.runQuery(internal.growwStore.getToken, { account: storeKey });
-  if (cached && cached.exp > Math.floor(Date.now() / 1000) + 300) return cached.token;
+  if (!forceRefresh && cached && cached.exp > Math.floor(Date.now() / 1000) + 300) return cached.token;
   const token = await getAccessToken(account);
   let exp = Math.floor(Date.now() / 1000) + 3600;
   try {
@@ -143,8 +143,8 @@ async function getCachedToken(ctx: ActionCtx, account?: Account): Promise<string
 
 // Token for the account the device has selected — always via the cache so we
 // don't re-mint (and rate-limit) on every call.
-async function tokenFor(ctx: ActionCtx, account?: string): Promise<string> {
-  return getCachedToken(ctx, account === "aditya" ? "aditya" : "primary");
+async function tokenFor(ctx: ActionCtx, account?: string, forceRefresh = false): Promise<string> {
+  return getCachedToken(ctx, account === "aditya" ? "aditya" : "primary", forceRefresh);
 }
 
 export type GrowwHolding = {
@@ -158,15 +158,15 @@ export type GrowwHolding = {
 // Current DEMAT holdings — the closest the API offers to "past buys" (the API
 // has NO historical order endpoint; the order book is current-day only).
 export const holdings = action({
-  args: { account: v.optional(v.string()) },
-  handler: async (ctx, { account }): Promise<GrowwHolding[]> => {
-    const token = await tokenFor(ctx, account);
+  args: { account: v.optional(v.string()), refresh: v.optional(v.boolean()) },
+  handler: async (ctx, { account, refresh }): Promise<GrowwHolding[]> => {
+    const token = await tokenFor(ctx, account, refresh === true);
     const res = await fetch(`${BASE}/holdings/user`, { headers: headers(token) });
     const data = (await res.json().catch(() => null)) as
-      | { payload?: { holdings?: Array<Record<string, unknown>> }; error?: { message?: string } }
+      | { status?: string; payload?: { holdings?: Array<Record<string, unknown>> }; error?: { message?: string; code?: string } }
       | null;
-    if (!res.ok) {
-      throw new Error(`Groww holdings failed (HTTP ${res.status}): ${data?.error?.message ?? "unknown"}`);
+    if (!res.ok || (data?.status && data.status !== "SUCCESS")) {
+      throw new Error(`Groww holdings failed (HTTP ${res.status}, ${data?.error?.code ?? data?.status ?? "unknown"}): ${data?.error?.message ?? "unknown"}`);
     }
     return (data?.payload?.holdings ?? [])
       .map((h): GrowwHolding => {

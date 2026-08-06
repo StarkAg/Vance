@@ -18,12 +18,14 @@ import type * as growwStore from "../growwStore.js";
 import type * as ledger from "../ledger.js";
 import type * as names from "../names.js";
 import type * as ocr from "../ocr.js";
+import type * as ocrStore from "../ocrStore.js";
 import type * as quotes from "../quotes.js";
 import type * as sector from "../sector.js";
 import type * as sectorScan from "../sectorScan.js";
 import type * as seed from "../seed.js";
 import type * as swing from "../swing.js";
 import type * as vcp from "../vcp.js";
+import type * as vcpSwing from "../vcpSwing.js";
 import type * as yearly from "../yearly.js";
 
 import type {
@@ -43,12 +45,14 @@ declare const fullApi: ApiFromModules<{
   ledger: typeof ledger;
   names: typeof names;
   ocr: typeof ocr;
+  ocrStore: typeof ocrStore;
   quotes: typeof quotes;
   sector: typeof sector;
   sectorScan: typeof sectorScan;
   seed: typeof seed;
   swing: typeof swing;
   vcp: typeof vcp;
+  vcpSwing: typeof vcpSwing;
   yearly: typeof yearly;
 }>;
 

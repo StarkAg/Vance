@@ -31,6 +31,22 @@ export default defineSchema({
     feedback: v.optional(v.string()),
   }).index("by_buyDate", ["buyDate"]),
 
+  // VCP Swing journal. Kept independent from the regular Swing journal so each
+  // strategy has its own trades, totals, imports, and notes.
+  vcpSwing: defineTable({
+    buyDate: v.string(),
+    sellDate: v.optional(v.string()),
+    name: v.optional(v.string()),
+    qty: v.number(),
+    buyPrice: v.number(),
+    sellPrice: v.optional(v.number()),
+    currentPrice: v.optional(v.number()),
+    charges: v.number(),
+    budget: v.optional(v.number()),
+    other: v.optional(v.number()),
+    feedback: v.optional(v.string()),
+  }).index("by_buyDate", ["buyDate"]),
+
   // Yearly Stock journal (long-term holdings).
   yearly: defineTable({
     buyDate: v.string(),
@@ -61,6 +77,17 @@ export default defineSchema({
   })
     .index("by_orderId", ["growwOrderId"])
     .index("by_date", ["date"]),
+
+  // Actual Anthropic usage for each OCR screenshot. Costs are stored in USD;
+  // the UI converts them to an approximate INR display at render time.
+  ocrUsage: defineTable({
+    at: v.number(),
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    costUsd: v.number(),
+    kind: v.string(),
+  }).index("by_at", ["at"]),
 
   // Sector-rotation snapshot from Moneycontrol's sector API. A local cron
   // (scripts/sector-cron.sh, residential IP) pushes one row every 15 min during
