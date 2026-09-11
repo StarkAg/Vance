@@ -3,6 +3,7 @@
 import { action } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { ConvexError } from "convex/values";
 
 // Agentic position review — the "brain" of Vance. Reads the latest live F&O
 // snapshot (built by groww.ts → pollPosition) and asks Claude Opus 4.8 to reason
@@ -18,6 +19,19 @@ import type { Id } from "./_generated/dataModel";
 const MODEL = "claude-opus-4-8";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// Plain Errors are redacted to "Server Error" on prod; ConvexError carries its
+// message to the client so the Agent tab can say what actually went wrong.
+function claudeError(what: string, status: number, message: string | undefined): ConvexError<string> {
+  if (message && /credit balance/i.test(message)) {
+    return new ConvexError(
+      `${what} unavailable: the Anthropic API account is out of credits. Top up at console.anthropic.com → Plans & Billing, then retry.`,
+    );
+  }
+  if (status === 401) return new ConvexError(`${what} failed: ANTHROPIC_API_KEY on Convex is invalid or revoked.`);
+  if (status === 429 || status === 529) return new ConvexError(`${what} failed: Anthropic API is rate-limited/overloaded — retry in a minute.`);
+  return new ConvexError(`${what} failed (HTTP ${status}): ${message ?? "unknown"}`);
+}
 
 type Position = {
   symbol: string;
@@ -115,7 +129,7 @@ export const reviewPositions = action({
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set on the Convex deployment");
+    if (!apiKey) throw new ConvexError("ANTHROPIC_API_KEY not set on the Convex deployment");
 
     // Trim each position to the fields the model needs to reason.
     const brief = positions.map((p) => ({
@@ -162,7 +176,7 @@ export const reviewPositions = action({
       | null;
 
     if (!res.ok) {
-      throw new Error(`Claude review failed (HTTP ${res.status}): ${body?.error?.message ?? "unknown"}`);
+      throw claudeError("Claude review", res.status, body?.error?.message);
     }
     if (body?.stop_reason === "refusal") {
       throw new Error("Claude declined the review request (refusal).");
@@ -306,7 +320,7 @@ export const generateIdeas = action({
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set on the Convex deployment");
+    if (!apiKey) throw new ConvexError("ANTHROPIC_API_KEY not set on the Convex deployment");
 
     // Compact scan for the model: top ranked sectors + the dip-in-strength picks.
     const scan = {
@@ -334,7 +348,7 @@ export const generateIdeas = action({
     const body = (await res.json().catch(() => null)) as
       | { content?: Array<{ type: string; text?: string }>; stop_reason?: string; error?: { message?: string } }
       | null;
-    if (!res.ok) throw new Error(`Claude ideas failed (HTTP ${res.status}): ${body?.error?.message ?? "unknown"}`);
+    if (!res.ok) throw claudeError("Idea generation", res.status, body?.error?.message);
     if (body?.stop_reason === "refusal") throw new Error("Claude declined the ideas request (refusal).");
 
     const text = body?.content?.find((b) => b.type === "text")?.text ?? "";

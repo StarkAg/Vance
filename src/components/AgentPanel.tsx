@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useAction } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import { Icon } from "./icons";
 
@@ -82,6 +83,9 @@ function ago(ms: number) {
   const h = Math.round(m / 60);
   return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
+// ConvexError carries the server's real message; plain Errors arrive as "Server Error".
+const errText = (e: unknown, fallback: string) =>
+  e instanceof ConvexError ? String(e.data) : e instanceof Error ? e.message : fallback;
 const parse = <T,>(s: string | undefined): T | null => {
   if (!s) return null;
   try { return JSON.parse(s) as T; } catch { return null; }
@@ -104,11 +108,11 @@ export default function AgentPanel() {
 
   async function onReview() {
     setRunning(true); setErr(null);
-    try { await runReview({}); } catch (e) { setErr(e instanceof Error ? e.message : "Review failed"); } finally { setRunning(false); }
+    try { await runReview({}); } catch (e) { setErr(errText(e, "Review failed")); } finally { setRunning(false); }
   }
   async function onGenerate() {
     setGenerating(true); setErr(null);
-    try { await scanAndGenerate({}); } catch (e) { setErr(e instanceof Error ? e.message : "Scan / idea generation failed"); } finally { setGenerating(false); }
+    try { await scanAndGenerate({}); } catch (e) { setErr(errText(e, "Scan / idea generation failed")); } finally { setGenerating(false); }
   }
 
   return (
