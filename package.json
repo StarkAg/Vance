@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "delta:preflight": "node scripts/delta/preflight.mjs",
+    "delta:dry": "node scripts/delta/run.mjs",
+    "delta:arm": "node scripts/delta/run.mjs --arm"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

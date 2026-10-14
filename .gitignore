@@ -31,3 +31,7 @@ eng.traineddata
 
 # Tesseract fine-tuning workspace (large artifacts, not app code)
 ocr-training/
+
+# delta agent session state / kill switch
+scripts/delta/.session-state.json
+scripts/delta/KILL

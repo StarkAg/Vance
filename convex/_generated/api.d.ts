@@ -24,6 +24,7 @@ import type * as sector from "../sector.js";
 import type * as sectorScan from "../sectorScan.js";
 import type * as seed from "../seed.js";
 import type * as swing from "../swing.js";
+import type * as telegram from "../telegram.js";
 import type * as vcp from "../vcp.js";
 import type * as vcpSwing from "../vcpSwing.js";
 import type * as yearly from "../yearly.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   sectorScan: typeof sectorScan;
   seed: typeof seed;
   swing: typeof swing;
+  telegram: typeof telegram;
   vcp: typeof vcp;
   vcpSwing: typeof vcpSwing;
   yearly: typeof yearly;

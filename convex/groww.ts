@@ -444,6 +444,51 @@ async function buildPositions(ctx: ActionCtx, dataToken: string, quoteToken: str
         if (urgency === "ok") urgency = "warn";
       }
       if (oco && ocoTarget && ltp >= ocoTarget * 0.95) recs.push(`Near target ₹${ocoTarget} — OCO auto-sells on touch.`);
+
+      // Trade-watch messages are advisory only: Groww remains the source of
+      // truth for order state and this app never sends an order to Groww.
+      if (oco && ocoStop && ltp <= ocoStop) {
+        alerts.push({
+          key: `${symbol}:stop`,
+          text: `EXIT — ${symbol} is at ₹${ltp}, at/below the OCO stop ₹${ocoStop}. Verify the OCO fill in Groww and square off any remaining quantity immediately.`,
+        });
+      } else if (oco && ocoTarget && ltp >= ocoTarget) {
+        alerts.push({
+          key: `${symbol}:target`,
+          text: `EXIT — ${symbol} reached the OCO target ₹${ocoTarget} (LTP ₹${ltp}). Verify the target fill in Groww and exit any remaining quantity.`,
+        });
+      } else if (oco && ocoTarget && ltp >= ocoTarget * 0.9) {
+        const halfQty = Math.max(1, Math.floor(qty / 2));
+        alerts.push({
+          key: `${symbol}:partial`,
+          text: `PARTIAL EXIT — ${symbol} is near its OCO target: LTP ₹${ltp} vs ₹${ocoTarget}. Consider booking ${halfQty}/${qty} quantity, then protect the remainder at least at entry ₹${entry}. Confirm any replacement OCO before cancelling the current one.`,
+        });
+      } else if (!oco && entry > 0) {
+        // A safety net for positions that were manually bought without an OCO.
+        // These are deliberately conservative premium levels, matching the
+        // recommendation pipeline's 20–35% stop / 30–80% target discipline.
+        const fallbackStop = r2(entry * 0.75);
+        const fallbackPartial = r2(entry * 1.3);
+        const fallbackExit = r2(entry * 1.4);
+        const halfQty = Math.max(1, Math.floor(qty / 2));
+        recs.push(`No OCO fallback watch: exit ₹${fallbackStop}; partial ₹${fallbackPartial}; full exit ₹${fallbackExit}.`);
+        if (ltp <= fallbackStop) {
+          alerts.push({
+            key: `${symbol}:fallback-stop`,
+            text: `EXIT — ${symbol} is at ₹${ltp}, below the fallback stop ₹${fallbackStop}. Square off the full ${qty} quantity; no OCO is protecting it.`,
+          });
+        } else if (ltp >= fallbackExit) {
+          alerts.push({
+            key: `${symbol}:fallback-target`,
+            text: `FULL EXIT — ${symbol} reached the fallback target ₹${fallbackExit} (LTP ₹${ltp}). Book the remaining ${qty} quantity manually; there is no OCO.`,
+          });
+        } else if (ltp >= fallbackPartial) {
+          alerts.push({
+            key: `${symbol}:fallback-partial`,
+            text: `PARTIAL EXIT — ${symbol} reached ₹${ltp}, above the fallback partial target ₹${fallbackPartial}. Consider booking ${halfQty}/${qty} quantity and place a protective stop on the remainder.`,
+          });
+        }
+      }
       if (recs.length === 0) recs.push("Protected and on track. Nothing to do.");
 
       // Speak danger-level conditions on the Echo Flex (once per cooldown — see
@@ -456,7 +501,7 @@ async function buildPositions(ctx: ActionCtx, dataToken: string, quoteToken: str
             key: `${symbol}:expiry`,
             text: `Alert. Your ${name} expires in ${daysToExpiry} day${daysToExpiry === 1 ? "" : "s"}. Square it off.`,
           });
-        } else if (!oco) {
+        } else if (!oco && !alerts.some((a) => a.key.startsWith(`${symbol}:fallback-`))) {
           alerts.push({
             key: `${symbol}:unprotected`,
             text: `Alert. Your ${name} has no active stop loss and is unprotected. Re-place the bracket order.`,
@@ -537,18 +582,22 @@ export const pollPosition = action({
       payload: JSON.stringify({ positions, trades, marketOpen: open, fetchedAtIST: istStamp() }),
     });
 
-    // Speak any new danger alerts on the Flex. claimAlert dedupes so each
-    // condition announces once per ~trading day (8h covers the 09:15–15:30
-    // session), NOT every poll — the Voice Monkey free tier is only 200
-    // requests/month (~6.6/day), so a persistent danger must cost 1 alert/day,
-    // not 12. Best-effort: a Voice Monkey hiccup must never break the snapshot.
+    // Deliver any new alert to both the Flex and Telegram. claimAlert dedupes
+    // each condition for one trading session, so a persistent condition never
+    // becomes a notification flood. Both paths are best-effort and neither can
+    // block the live snapshot or place an order.
     for (const a of alerts) {
       try {
         const fresh = await ctx.runMutation(internal.growwStore.claimAlert, {
           key: a.key,
           cooldownMs: 8 * 60 * 60 * 1000,
         });
-        if (fresh) await ctx.runAction(internal.alexa.announce, { text: a.text });
+        if (fresh) {
+          await Promise.allSettled([
+            ctx.runAction(internal.alexa.announce, { text: a.text }),
+            ctx.runAction(internal.telegram.sendTradeAlert, { text: a.text }),
+          ]);
+        }
       } catch {
         /* ignore — announcements are non-critical */
       }
